@@ -4,9 +4,10 @@ import compress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import pg from 'pg';
+import {registerAuthRoutes} from './auth.js';
 
 const {Pool}=pg;
-const app=Fastify({logger:true,bodyLimit:2*1024*1024,requestTimeout:30000});
+const app=Fastify({logger:true,bodyLimit:2*1024*1024,requestTimeout:30000,trustProxy:true});
 const PORT=Number(process.env.PORT||8080);
 const DATABASE_URL=process.env.DATABASE_URL;
 if(!DATABASE_URL)throw new Error('DATABASE_URL is required');
@@ -21,7 +22,7 @@ if(process.env.JWT_SECRET)await app.register(jwt,{secret:process.env.JWT_SECRET}
 function bearer(req){const h=req.headers.authorization||'';return h.startsWith('Bearer ')?h.slice(7).trim():''}
 function slug(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)}
 async function authenticate(req,reply){
-  if(req.url==='/v1/health')return;
+  if(req.url==='/v1/health'||req.url==='/v1/auth/login')return;
   if(process.env.JWT_SECRET){try{await req.jwtVerify();return}catch(_){return reply.code(401).send({error:'unauthorized'})}}
   const dev=process.env.API_AUTH_TOKEN;
   if(dev&&bearer(req)===dev){req.user={role:'super_admin'};return}
@@ -57,7 +58,8 @@ function sumMetrics(rows){
 function encodeCursor(row){return Buffer.from(JSON.stringify([row.updated_at,row.person_id])).toString('base64url')}
 function decodeCursor(v){try{const [ts,id]=JSON.parse(Buffer.from(String(v||''),'base64url').toString('utf8'));return {ts,id}}catch(_){return null}}
 
-app.get('/v1/health',async()=>({ok:true,service:'pcgdxmc-api',version:'1.0.0',time:new Date().toISOString()}));
+app.get('/v1/health',async()=>({ok:true,service:'pcgdxmc-api',version:'1.1.0',time:new Date().toISOString()}));
+await registerAuthRoutes(app,pool);
 
 app.post('/v1/summaries/upsert',async(req,reply)=>{
   const b=req.body||{},year=clampInt(b.year,2000,2100,0),province=String(b.provinceKey||''),name=String(b.communeName||'').trim();
@@ -113,6 +115,5 @@ app.post('/v1/persons/batch',async(req,reply)=>{
 });
 
 app.setErrorHandler((err,req,reply)=>{req.log.error({err},'request failed');if(err.code==='23505')return reply.code(409).send({error:'conflict'});return reply.code(500).send({error:'internal_error',requestId:req.id})});
-
 app.addHook('onClose',async()=>{await pool.end()});
 await app.listen({port:PORT,host:'0.0.0.0'});
