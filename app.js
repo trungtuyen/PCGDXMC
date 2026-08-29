@@ -24,7 +24,8 @@
       const items=[];
       for(let i=0;i<selectedFiles.length;i++){
         const f=selectedFiles[i];setStatus(`Đang đọc ${i+1}/${selectedFiles.length}: ${f.name}…`,'info');
-        const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellStyles:false,cellDates:false});items.push({wb,name:f.name});
+        const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellStyles:false,cellDates:false});
+        if(wb.Sheets?.MauNhapLieu&&!wb.Sheets?.DATA&&wb.Sheets?.DuLieu){const sheets={...wb.Sheets};delete sheets.DuLieu;items.push({wb:{...wb,Sheets:sheets},name:f.name});}else items.push({wb,name:f.name});
       }
       result=PCGDEngine.analyzeWorkbooks(items,yearTouched?Number(year.value):0);year.value=result.year;$('yearLabel').textContent=`Năm ${result.year}`;
       renderAll();exportBtn.disabled=false;
@@ -44,6 +45,6 @@
   function renderData(){if(!result)return;const q=norm($('searchInput').value);let arr=result.records;if(q)arr=arr.filter(r=>norm([r.name,r.village,r.ticket,r.school,r.schoolName,r.sourceName].join(' ')).includes(q));arr=arr.slice(0,500);$('dataTable').innerHTML=arr.length?arr.map(r=>`<tr><td>${esc(r.sourceName)}</td><td>${r.rowNumber}</td><td>${esc(r.name)}</td><td>${r.birthYear||''}</td><td>${r.age===''?'':r.age}</td><td>${esc(r.village)}</td><td>${esc(r.bh)}</td><td>${esc(r.bg||r.bm)}</td><td>${esc(r.bn||'')}</td><td>${r.br?'<span class="sev warning">Có</span>':''}</td></tr>`).join(''):'<tr><td colspan="10" class="muted">Không có dòng phù hợp.</td></tr>';}
   function renderReports(){if(!result)return;const auto=['MN-1TE','MN-2','TH-1TE','TH-2','THCS-1TTN','THCS-2.1','THCS-2.2','CMC-1','CMC-2','CMC-3','CMC-4'];const manual=['MN-CSVC','MN-ĐN','TH-CSVC','TH-DN','THCS-CSVC','THCS-DN'];$('reportTable').innerHTML=[...auto.map(x=>`<tr><td><strong>${x}</strong></td><td><span class="sev">Tự động</span></td><td>Tính trực tiếp từ dữ liệu điều tra.</td></tr>`),...manual.map(x=>`<tr><td><strong>${x}</strong></td><td><span class="sev warning">Bổ sung</span></td><td>Đã tạo sheet Excel; cần nhà trường nhập CSVC/đội ngũ vì phiếu hộ dân không có dữ liệu này.</td></tr>`)].join('');$('sourceList').innerHTML=result.sources.map(x=>`<li><strong>${esc(x.name)}</strong>: ${fmt(x.rows)} đối tượng${x.fileYear?` · năm trong file ${x.fileYear}`:''}</li>`).join('');}
   function norm(v){return String(v||'').normalize('NFC').toLowerCase()}
-  function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt',"'":'&#39;','"':'&quot;'}[c]))}
+  function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 })();
