@@ -1,6 +1,6 @@
 # PCGD–XMC Smart
 
-Ứng dụng web hỗ trợ **Phổ cập giáo dục – Xóa mù chữ (PCGD–XMC)** theo hướng local-first, được xây dựng để đối chiếu và dần thay thế quy trình tính bằng workbook Excel PCGD cấp xã.
+Ứng dụng web hỗ trợ **Phổ cập giáo dục – Xóa mù chữ (PCGD–XMC)** theo hướng local-first: giáo viên nộp phiếu điều tra Excel, hệ thống chuẩn hóa, tổng hợp và sinh các biểu PCGD–XMC để xuất lại Excel.
 
 ## 🚀 Chạy phần mềm ngay
 
@@ -8,48 +8,56 @@
 
 https://raw.githack.com/trungtuyen/PCGDXMC/main/index.html
 
-> Link trên phục vụ trực tiếp mã nguồn public từ repository GitHub. Dữ liệu Excel người dùng chọn vẫn được xử lý trong trình duyệt và không được commit vào repository.
+> File điều tra được xử lý trong trình duyệt của người dùng. Repository không lưu danh sách dân cư, họ tên, ngày sinh hay số điện thoại từ phiếu điều tra.
 
-## Bản Beta 0.1 có gì?
+## Beta 0.2
 
-- Đọc file Excel ngay trên trình duyệt; **không tải dữ liệu cá nhân lên GitHub**.
-- Nhận diện các sheet `DATA`, `DuLieu`, `MaTruong`, `THONG_TIN`.
-- Tái tính lõi biến phụ tương đương vùng **BA–BU** của sheet `DATA`: hệ học, lỗi mã trường, tuổi, lứa tuổi, khối đang học, 15–18 tuổi đã TN THCS, hệ THPT/GDTX/GDNN, nhóm XMC, MC/MC1/MC2, bỏ học, khuyết tật, tốt nghiệp năm trước, lưu ban, học 2 buổi.
-- Dashboard nhanh theo nhóm tuổi.
-- Soát lỗi dữ liệu và lỗi danh mục trường.
-- Tìm kiếm dữ liệu đã tính.
-- Xuất workbook kết quả gồm `TongHop`, `SoatLoi`, `DuLieuTinh`.
-- PWA: có thể cài như ứng dụng sau khi GitHub Pages được bật.
+- Nhận trực tiếp file điều tra có sheet `MauNhapLieu`, gồm cả **`.xls` đời cũ** và `.xlsx`.
+- Đã thiết kế theo mẫu thực tế **`Bản Cháng.xls`**.
+- Cho phép **chọn nhiều file cùng lúc** để gộp nhiều thôn/xóm thành dữ liệu cấp xã.
+- Tự nhận diện thôn/xóm từ địa chỉ hoặc tên file.
+- Chuẩn hóa dữ liệu về cấu trúc tương đương `DATA` và tính các biến phụ BA–BU.
+- Soát lỗi và chỉ rõ **file nguồn + dòng Excel + đối tượng**.
+- Tự động sinh các biểu từ dữ liệu điều tra:
+  - `MN-1TE`, `MN-2`
+  - `TH-1TE`, `TH-2`
+  - `THCS-1TTN`, `THCS-2.1`, `THCS-2.2`
+  - `CMC-1`, `CMC-2`, `CMC-3`, `CMC-4`
+- Tạo sẵn các sheet `MN-CSVC`, `MN-ĐN`, `TH-CSVC`, `TH-DN`, `THCS-CSVC`, `THCS-DN`. Các sheet này cần bổ sung số liệu nhà trường vì phiếu điều tra hộ dân không chứa dữ liệu CSVC/đội ngũ.
+- Nút **Xuất toàn bộ biểu Excel** tạo một workbook mới gồm `TongQuan`, `SoatLoi`, `DATA` và toàn bộ các biểu trên.
+
+## Quy trình sử dụng
+
+1. Giáo viên hoàn thiện phiếu điều tra `.xls/.xlsx`.
+2. Cán bộ PCGD chọn một file hoặc nhiều file cùng lúc.
+3. Nhấn **Phân tích và tạo biểu**.
+4. Kiểm tra tab **Soát lỗi** và sửa phiếu nếu cần.
+5. Nhấn **Xuất toàn bộ biểu Excel**.
 
 ## Quyền riêng tư
 
-Repository **không chứa** file điều tra gốc hay dữ liệu họ tên/ngày sinh/số điện thoại. Excel do người dùng chọn được đọc bằng JavaScript tại máy người dùng.
-
-> Không commit file dữ liệu PCGD thực tế vào repository public.
+Repository **không chứa file điều tra gốc**. Không commit dữ liệu PCGD thực tế vào repository public.
 
 ## GitHub Pages
 
-Workflow triển khai GitHub Pages đã có sẵn. GitHub hiện không cho phép workflow tự tạo Pages site lần đầu bằng `GITHUB_TOKEN`, nên link GitHub Pages chính thức chỉ hoạt động sau khi Pages được bật một lần trong phần cài đặt repository.
-
-Địa chỉ GitHub Pages dự kiến sau khi bật:
+Workflow GitHub Pages đã được cấu hình. GitHub không cho phép `GITHUB_TOKEN` tự tạo Pages site lần đầu, nên hiện bản chạy trực tiếp sử dụng raw.githack. Khi Pages được bật một lần trong repository, địa chỉ dự kiến là:
 
 `https://trungtuyen.github.io/PCGDXMC/`
 
 ## Kiến trúc
 
-- `index.html` — giao diện ứng dụng.
-- `engine.js` — PCGD–XMC calculation engine.
-- `app.js` — điều khiển giao diện, import/export.
+- `index.html` — giao diện Beta 0.2.
+- `core-v02.js` — đọc/gộp phiếu điều tra và calculation engine.
+- `reports-v02.js` — sinh bộ biểu và workbook Excel.
+- `app.js` — điều khiển giao diện/import/export.
 - `styles.css` — giao diện responsive.
 - `sw.js` + `manifest.webmanifest` — PWA/offline shell.
-- `.github/workflows/pages.yml` — triển khai GitHub Pages.
+- `.github/workflows/pages.yml` — workflow GitHub Pages.
 
 ## Nguồn thư viện
 
-Bản web sử dụng SheetJS Community Edition 0.20.3 từ CDN chính thức để đọc/ghi XLSX.
+Ứng dụng sử dụng SheetJS Community Edition 0.20.3 từ CDN chính thức để đọc và ghi `.xls/.xlsx` trong trình duyệt.
 
 ## Trạng thái nghiệp vụ
 
-Đây là **bản Beta kỹ thuật**. Mục tiêu hiện tại là đối chiếu chính xác logic workbook Excel trước; bộ đánh giá công nhận PCGD–XMC theo đầy đủ văn bản hiện hành sẽ được tách thành rule engine có phiên bản và kiểm thử riêng.
-
-Không sử dụng kết quả Beta như quyết định công nhận pháp lý khi chưa được cơ quan có thẩm quyền kiểm tra.
+Beta 0.2 ưu tiên tự động hóa quy trình **phiếu điều tra → dữ liệu chuẩn hóa → biểu tổng hợp**. Các kết luận “gợi ý mức” cần tiếp tục được đối chiếu với đầy đủ điều kiện pháp lý và số liệu CSVC/đội ngũ trước khi dùng làm kết luận công nhận chính thức.
