@@ -4,55 +4,77 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="PCGD–XMC Smart: nhập phiếu điều tra .xls/.xlsx, tự tổng hợp các biểu PCGD–XMC và xuất Excel ngay trên trình duyệt." />
+  <meta name="description" content="PCGD–XMC Smart: nhập phiếu điều tra, tự tổng hợp biểu Mầm non, Tiểu học, THCS, Xóa mù chữ và xuất Excel." />
   <title>PCGD–XMC Smart</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    .report-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.report-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow)}.report-card h3{margin:0 0 4px}.report-card>p{margin:0 0 14px;color:var(--muted);font-size:12px}.report-list{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:8px}.report-list li{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #edf2f1;padding:8px 0;font-size:12px}.report-list li span{color:var(--muted);text-align:right}.report-card .secondary{width:100%}.report-card.featured{border:2px solid #b9ddd7;background:#f8fffd}.report-actions{display:flex;gap:10px;flex-wrap:wrap}.report-actions button{flex:1}.scope-note{background:var(--soft);padding:14px;border-radius:12px;color:#315e57;font-size:13px;line-height:1.6}.source-box{margin-top:14px}.source-box ul{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:12px;line-height:1.8}@media(max-width:760px){.report-grid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">PX</div><div><h1>PCGD–XMC Smart</h1><p>Phiếu điều tra → phân tích → toàn bộ biểu → Excel</p></div></div>
-    <span class="badge">Beta 0.2</span>
+    <div class="brand"><div class="brand-mark">PX</div><div><h1>PCGD–XMC Smart</h1><p>Phiếu điều tra → phân tích → biểu theo cấp học → Excel</p></div></div>
+    <span class="badge">Beta 0.3</span>
   </header>
 
   <main class="shell">
     <section class="hero panel">
-      <div><p class="eyebrow">PHỔ CẬP GIÁO DỤC · XÓA MÙ CHỮ</p><h2>Giáo viên chỉ cần nộp phiếu điều tra. Phần mềm tự gộp và sinh các biểu.</h2><p class="lead">Hỗ trợ trực tiếp mẫu <strong>MauNhapLieu</strong> dạng <strong>.xls/.xlsx</strong> như “Bản Cháng.xls”. Có thể chọn <strong>nhiều file cùng lúc</strong> để gộp các thôn/xóm thành số liệu cấp xã.</p></div>
-      <div class="privacy-card"><strong>🔒 Xử lý tại máy</strong><span>File điều tra được đọc ngay trong trình duyệt, không tải danh sách dân cư lên GitHub hay máy chủ của ứng dụng.</span></div>
+      <div><p class="eyebrow">PHỔ CẬP GIÁO DỤC · XÓA MÙ CHỮ</p><h2>Nhập dữ liệu một lần, tự tách thành từng bộ biểu nghiệp vụ.</h2><p class="lead">Chọn một hoặc nhiều file điều tra <strong>.xls/.xlsx</strong>. Phần mềm gộp dữ liệu và tạo riêng bộ biểu <strong>Mầm non · Tiểu học · THCS · Xóa mù chữ</strong>, đồng thời vẫn có bộ tổng hợp cấp xã.</p></div>
+      <div class="privacy-card"><strong>🔒 Xử lý tại máy</strong><span>File điều tra được đọc trong trình duyệt, không đưa dữ liệu dân cư lên repository GitHub.</span></div>
     </section>
 
     <section class="panel import-panel">
-      <div class="field grow"><label for="excelFile">Phiếu điều tra Excel (.xls/.xlsx) — có thể chọn nhiều file</label><input id="excelFile" type="file" accept=".xlsx,.xls,.xlsm" multiple /></div>
-      <div class="field small"><label for="yearInput">Năm điều tra (để trống để tự nhận)</label><input id="yearInput" type="number" min="2000" max="2100" placeholder="Tự nhận từ file" /></div>
+      <div class="field grow"><label for="excelFile">Phiếu điều tra Excel</label><input id="excelFile" type="file" accept=".xlsx,.xls,.xlsm" multiple /></div>
+      <div class="field small"><label for="yearInput">Năm điều tra</label><input id="yearInput" type="number" min="2000" max="2100" value="2026" /></div>
       <button id="analyzeBtn" class="primary" disabled>Phân tích và tạo biểu</button>
-      <button id="exportBtn" class="secondary" disabled>Xuất toàn bộ biểu Excel</button>
+      <button id="exportBtn" class="secondary" disabled>Xuất toàn bộ hồ sơ</button>
     </section>
-
-    <div id="status" class="status info">Chọn một hoặc nhiều file điều tra Excel để bắt đầu.</div>
+    <div id="status" class="status info">Chọn file điều tra Excel để bắt đầu.</div>
 
     <nav class="tabs" aria-label="Các màn hình">
-      <button class="tab active" data-tab="overview">Tổng quan</button><button class="tab" data-tab="reports">Các biểu xuất</button><button class="tab" data-tab="errors">Soát lỗi <span id="errorCountPill" class="pill">0</span></button><button class="tab" data-tab="data">Dữ liệu chuẩn hóa</button><button class="tab" data-tab="guide">Hướng dẫn</button>
+      <button class="tab active" data-tab="overview">Tổng quan</button>
+      <button class="tab" data-tab="reports">Các bộ biểu</button>
+      <button class="tab" data-tab="errors">Soát lỗi <span id="errorCountPill" class="pill">0</span></button>
+      <button class="tab" data-tab="data">Dữ liệu</button>
+      <button class="tab" data-tab="guide">Hướng dẫn</button>
     </nav>
 
     <section id="overview" class="tabpage active">
-      <div id="kpiGrid" class="kpi-grid"><article class="kpi"><span>Nhân khẩu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Hộ/phiếu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>15–18 tuổi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Soát lỗi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article></div>
-      <div class="two-col"><section class="panel compact"><div class="section-head"><h3>Phân bố nhóm tuổi</h3><span id="yearLabel">Chưa xác định năm</span></div><div id="ageBars" class="bar-list empty">Chưa có dữ liệu.</div></section><section class="panel compact"><div class="section-head"><h3>Chỉ số đối chiếu nhanh</h3><span>Gợi ý kiểm tra</span></div><div id="quickChecks" class="check-list empty">Chưa có dữ liệu.</div></section></div>
-      <section class="panel compact"><div class="section-head"><h3>Luồng xử lý</h3><span>Không cần copy/paste sang file tổng hợp</span></div><div class="flow"><span>Phiếu điều tra .xls</span><b>→</b><span>Nhận diện thôn</span><b>→</b><span>Chuẩn hóa DATA</span><b>→</b><span>Tính chỉ tiêu</span><b>→</b><span>Sinh biểu</span><b>→</b><span>Xuất Excel</span></div></section>
+      <div id="kpiGrid" class="kpi-grid">
+        <article class="kpi"><span>Nhân khẩu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Hộ/phiếu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>15–18 tuổi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Soát lỗi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article>
+      </div>
+      <div class="two-col">
+        <section class="panel compact"><div class="section-head"><h3>Phân bố nhóm tuổi</h3><span id="yearLabel">Năm 2026</span></div><div id="ageBars" class="bar-list empty">Chưa có dữ liệu.</div></section>
+        <section class="panel compact"><div class="section-head"><h3>Chỉ số đối chiếu nhanh</h3><span>Từ dữ liệu điều tra</span></div><div id="quickChecks" class="check-list empty">Chưa có dữ liệu.</div></section>
+      </div>
+      <section class="panel compact"><div class="section-head"><h3>Luồng xử lý</h3><span>Một nguồn dữ liệu → nhiều bộ biểu</span></div><div class="flow"><span>Phiếu điều tra</span><b>→</b><span>Chuẩn hóa</span><b>→</b><span>Soát lỗi</span><b>→</b><span>MN</span><span>TH</span><span>THCS</span><span>XMC</span><b>→</b><span>Excel</span></div></section>
     </section>
 
-    <section id="reports" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Các biểu sẽ có trong file Excel xuất về</h3><p>Biểu dân số/PCGD/XMC tự tính. Biểu CSVC và đội ngũ được tạo sẵn để nhà trường bổ sung.</p></div></div><div class="table-wrap"><table><thead><tr><th>Biểu</th><th>Trạng thái</th><th>Cách tạo số liệu</th></tr></thead><tbody id="reportTable"><tr><td colspan="3" class="muted">Phân tích file trước để xem trạng thái.</td></tr></tbody></table></div></section><section class="panel compact"><h3>File nguồn đã gộp</h3><ul id="sourceList"><li class="muted">Chưa có dữ liệu.</li></ul></section></section>
+    <section id="reports" class="tabpage">
+      <section class="report-grid">
+        <article class="report-card featured"><h3>📊 Tổng hợp cấp xã</h3><p>Dữ liệu nguồn, lỗi và bảng tổng quan chung.</p><ul class="report-list"><li><strong>TongQuan</strong><span>Tổng hợp chung</span></li><li><strong>SoatLoi</strong><span>Các dòng cần rà soát</span></li><li><strong>DATA</strong><span>Dữ liệu chuẩn hóa + cột tính</span></li></ul><button class="secondary" data-export-group="tonghop" disabled>Xuất tổng hợp cấp xã</button></article>
+        <article class="report-card"><h3>🧒 Mầm non</h3><p>Bộ biểu PCGDMN cho trẻ em 5 tuổi.</p><ul id="group-mn" class="report-list"><li><strong>MN-1TE</strong><span>Tự động</span></li><li><strong>MN-2</strong><span>Tự động</span></li><li><strong>MN-CSVC / MN-ĐN</strong><span>Cần bổ sung</span></li></ul><button class="secondary" data-export-group="mn" disabled>Xuất bộ biểu Mầm non</button></article>
+        <article class="report-card"><h3>📘 Tiểu học</h3><p>Bộ biểu phổ cập giáo dục Tiểu học.</p><ul id="group-th" class="report-list"><li><strong>TH-1TE</strong><span>Tự động</span></li><li><strong>TH-2</strong><span>Tự động</span></li><li><strong>TH-CSVC / TH-DN</strong><span>Cần bổ sung</span></li></ul><button class="secondary" data-export-group="th" disabled>Xuất bộ biểu Tiểu học</button></article>
+        <article class="report-card"><h3>🎓 THCS</h3><p>Bộ biểu phổ cập giáo dục Trung học cơ sở.</p><ul id="group-thcs" class="report-list"><li><strong>THCS-1TTN</strong><span>Tự động</span></li><li><strong>THCS-2.1 / 2.2</strong><span>Tự động</span></li><li><strong>THCS-CSVC / THCS-DN</strong><span>Cần bổ sung</span></li></ul><button class="secondary" data-export-group="thcs" disabled>Xuất bộ biểu THCS</button></article>
+        <article class="report-card"><h3>📝 Xóa mù chữ</h3><p>Bộ biểu XMC được tách độc lập với các cấp học.</p><ul id="group-xmc" class="report-list"><li><strong>CMC-1</strong><span>Tự động</span></li><li><strong>CMC-2</strong><span>Tự động</span></li><li><strong>CMC-3</strong><span>Tự động</span></li><li><strong>CMC-4</strong><span>Tự động</span></li></ul><button class="secondary" data-export-group="xmc" disabled>Xuất bộ biểu Xóa mù chữ</button></article>
+        <article class="report-card featured"><h3>📦 Toàn bộ hồ sơ</h3><p>Gộp toàn bộ các biểu trên trong một workbook Excel.</p><div class="scope-note">Dùng khi cán bộ PCGD cấp xã cần lưu trữ hoặc gửi toàn bộ kết quả. Các sheet CSVC và đội ngũ được tạo sẵn nhưng phải bổ sung từ dữ liệu nhà trường.</div><div class="report-actions" style="margin-top:16px"><button class="primary" onclick="document.getElementById('exportBtn').click()">Xuất toàn bộ hồ sơ</button></div></article>
+      </section>
+      <section class="panel compact source-box"><h3>Nguồn dữ liệu đã nhập</h3><ul id="sourceList"><li>Chưa có dữ liệu.</li></ul></section>
+    </section>
 
-    <section id="errors" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Danh sách cần rà soát</h3><p>Chỉ rõ file nguồn và dòng Excel để giáo viên sửa nhanh.</p></div><select id="errorFilter"><option value="all">Tất cả mức độ</option><option value="error">Lỗi</option><option value="warning">Cảnh báo</option></select></div><div class="table-wrap"><table><thead><tr><th>Mức</th><th>File nguồn</th><th>Dòng</th><th>Đối tượng</th><th>Thôn/xóm</th><th>Nội dung</th><th>Gợi ý</th></tr></thead><tbody id="errorTable"><tr><td colspan="7" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
+    <section id="errors" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Danh sách cần rà soát</h3><p>Chỉ rõ file nguồn và dòng Excel để sửa nhanh.</p></div><select id="errorFilter"><option value="all">Tất cả mức độ</option><option value="error">Lỗi</option><option value="warning">Cảnh báo</option></select></div><div class="table-wrap"><table><thead><tr><th>Mức</th><th>File nguồn</th><th>Dòng</th><th>Đối tượng</th><th>Thôn/xóm</th><th>Nội dung</th><th>Gợi ý</th></tr></thead><tbody id="errorTable"><tr><td colspan="7" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
 
-    <section id="data" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Dữ liệu đã chuẩn hóa</h3><p>Hiển thị tối đa 500 dòng; file Excel xuất về chứa toàn bộ dữ liệu và các cột tính phụ.</p></div><input id="searchInput" class="search" type="search" placeholder="Tìm họ tên, thôn, số phiếu…" /></div><div class="table-wrap"><table><thead><tr><th>File</th><th>Dòng</th><th>Họ tên</th><th>Năm sinh</th><th>Tuổi</th><th>Thôn/xóm</th><th>Khối hiện tại</th><th>Nhóm tuổi</th><th>XMC</th><th>K.tật</th></tr></thead><tbody id="dataTable"><tr><td colspan="10" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
+    <section id="data" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Dữ liệu đã chuẩn hóa</h3><p>Hiển thị tối đa 500 dòng; file xuất Excel chứa toàn bộ.</p></div><input id="searchInput" class="search" type="search" placeholder="Tìm họ tên, thôn, số phiếu…" /></div><div class="table-wrap"><table><thead><tr><th>File</th><th>Dòng</th><th>Họ tên</th><th>Năm sinh</th><th>Tuổi</th><th>Thôn/xóm</th><th>Khối hiện tại</th><th>Nhóm tuổi</th><th>XMC</th><th>K.tật</th></tr></thead><tbody id="dataTable"><tr><td colspan="10" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
 
-    <section id="guide" class="tabpage"><section class="panel prose"><h3>Cách dùng dành cho giáo viên/cán bộ PCGD</h3><ol><li>Giáo viên điều tra và hoàn thiện file Excel có sheet <code>MauNhapLieu</code> như mẫu <strong>Bản Cháng.xls</strong>.</li><li>Chọn một file để tổng hợp một thôn, hoặc chọn nhiều file để gộp nhiều thôn/xóm.</li><li>Nhấn <strong>Phân tích và tạo biểu</strong>. Phần mềm tự nhận năm trong file nếu ô năm điều tra có dữ liệu.</li><li>Kiểm tra tab <strong>Soát lỗi</strong>. Mỗi lỗi có file nguồn + số dòng để quay lại sửa phiếu.</li><li>Nhấn <strong>Xuất toàn bộ biểu Excel</strong> để tải bộ tổng hợp về máy.</li></ol><div class="notice"><strong>Phạm vi tự động:</strong> các biểu từ dữ liệu dân cư/học tập/XMC/khuyết tật được tính tự động. Phiếu điều tra hộ dân không có số liệu cơ sở vật chất và đội ngũ, nên các sheet CSVC/ĐN được tạo sẵn và đánh dấu cần bổ sung từ nhà trường.</div></section></section>
+    <section id="guide" class="tabpage"><section class="panel prose"><h3>Cách sử dụng</h3><ol><li>Giáo viên hoàn thiện phiếu Excel điều tra của thôn/xóm.</li><li>Cán bộ có thể chọn một file hoặc chọn nhiều file cùng lúc.</li><li>Nhấn <strong>Phân tích và tạo biểu</strong>.</li><li>Kiểm tra <strong>Soát lỗi</strong> trước khi sử dụng số liệu.</li><li>Mở <strong>Các bộ biểu</strong>, chọn Mầm non, Tiểu học, THCS hoặc Xóa mù chữ và xuất Excel riêng.</li><li>Nếu cần toàn bộ, dùng nút <strong>Xuất toàn bộ hồ sơ</strong>.</li></ol><div class="notice"><strong>Lưu ý:</strong> CSVC và đội ngũ không có trong phiếu điều tra hộ dân nên phải bổ sung từ nhà trường. Phần mềm không tự tạo số liệu này.</div></section></section>
   </main>
 
   <footer><span>PCGD–XMC Smart · mã nguồn công khai</span><a href="https://github.com/trungtuyen/PCGDXMC" target="_blank" rel="noreferrer">GitHub repository ↗</a></footer>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="core-v02.js"></script>
   <script src="reports-v02.js"></script>
+  <script src="groups-v03.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
