@@ -1,80 +1,106 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="PCGD–XMC Smart: nhập phiếu điều tra gốc, chọn thôn/xóm, xem và xuất biểu Mầm non, Tiểu học, THCS, Xóa mù chữ." />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#156aa4">
+  <meta name="description" content="PCGD–XMC Smart: nhập phiếu điều tra, lọc đối tượng, tổng hợp và xuất các biểu PCGD-XMC.">
   <title>PCGD–XMC Smart</title>
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    .scopebar{margin:14px 0;padding:14px 16px;display:flex;align-items:end;gap:14px}.scopebar .field{min-width:280px}.scope-summary{flex:1;padding:10px 14px;border-radius:11px;background:var(--soft);font-size:13px;color:#315e57}.main-menu{display:flex;gap:8px;margin:16px 0;overflow:auto;padding-bottom:2px}.main-menu .tab{white-space:nowrap}.report-workspace{padding:20px}.report-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:14px}.report-head h2{margin:0;font-size:21px}.report-head p{margin:4px 0 0;color:var(--muted);font-size:12px}.report-submenu{display:flex;gap:8px;flex-wrap:wrap;padding:12px;background:#f5f9f8;border:1px solid var(--line);border-radius:13px;margin-bottom:14px}.report-submenu button{border:1px solid #cbdcd8;background:#fff;border-radius:9px;padding:9px 12px;font-weight:750;color:#315e57;cursor:pointer}.report-submenu button.active{background:var(--brand);color:#fff;border-color:var(--brand)}.report-meta{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:12px 0}.report-meta h3{margin:0;font-size:15px}.scope-pill{background:var(--soft);color:var(--brand2);font-weight:750;border-radius:999px;padding:6px 10px;font-size:12px}.report-preview{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:620px;background:#fff}.report-preview table{min-width:max-content}.report-preview th,.report-preview td{font-size:11px;padding:8px 9px}.report-preview .blank{padding:30px;text-align:center;color:var(--muted);min-width:600px}.hint{margin-top:12px;background:#fff8e7;border-radius:11px;padding:12px 14px;color:#704000;font-size:12px;line-height:1.55}.scope-actions{display:flex;gap:8px;flex-wrap:wrap}.scope-actions button{white-space:nowrap}@media(max-width:760px){.scopebar,.report-head{align-items:stretch;flex-direction:column}.scopebar .field{min-width:0;width:100%}.scope-actions{width:100%}.scope-actions button{flex:1}.report-preview .blank{min-width:0}}
-  </style>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><div class="brand-mark">PX</div><div><h1>PCGD–XMC Smart</h1><p>Phiếu điều tra gốc → chọn thôn → xem biểu → Excel</p></div></div>
-    <span class="badge">Beta 0.4</span>
+    <div class="brand"><div class="brand-mark">PX</div><div><h1>PCGD–XMC Smart</h1><p>Thống kê phổ cập giáo dục - xóa mù chữ</p></div></div>
+    <span class="badge">PCGD-XMC Smart</span>
   </header>
 
   <main class="shell">
-    <section class="hero panel">
-      <div><p class="eyebrow">PHỔ CẬP GIÁO DỤC · XÓA MÙ CHỮ</p><h2>Mỗi thôn một phạm vi báo cáo, mỗi cấp học một menu riêng.</h2><p class="lead">Nhập một hoặc nhiều file điều tra gốc có sheet <strong>MauNhapLieu</strong>. Sau khi phân tích, chọn <strong>Toàn xã</strong> hoặc một <strong>thôn/xóm</strong> để xem đúng các biểu Mầm non, Tiểu học, THCS và Xóa mù chữ.</p></div>
-      <div class="privacy-card"><strong>🔒 Dữ liệu xử lý tại máy</strong><span>File điều tra được đọc trong trình duyệt. Repository GitHub không lưu dữ liệu dân cư.</span></div>
-    </section>
+    <section class="hero panel"><div><h2>PCGD–XMC Smart</h2></div></section>
 
     <section class="panel import-panel">
-      <div class="field grow"><label for="excelFile">File điều tra gốc (.xls/.xlsx)</label><input id="excelFile" type="file" accept=".xlsx,.xls,.xlsm" multiple /></div>
-      <div class="field small"><label for="yearInput">Năm điều tra</label><input id="yearInput" type="number" min="2000" max="2100" value="2026" /></div>
+      <div class="field grow"><label for="excelFile">Chọn nhiều phiếu điều tra gốc (.xls/.xlsx)</label><input id="excelFile" type="file" accept=".xlsx,.xls,.xlsm" multiple></div>
+      <div class="field small"><label for="yearInput">Năm điều tra</label><input id="yearInput" type="number" min="2000" max="2100" value="2026"></div>
       <button id="analyzeBtn" class="primary" disabled>Phân tích dữ liệu</button>
       <button id="exportBtn" class="secondary" disabled>Xuất toàn bộ phạm vi</button>
     </section>
-    <div id="status" class="status info">Chọn file điều tra gốc để bắt đầu.</div>
+    <div id="status" class="status info">Chọn file điều tra hoặc dùng menu Phiếu điều tra → Nhập trực tiếp.</div>
 
     <section class="panel scopebar">
-      <div class="field"><label for="villageSelect">Phạm vi báo cáo</label><select id="villageSelect" disabled><option value="__ALL__">Toàn xã</option></select></div>
+      <div class="field"><label for="villageSelect">Thôn/xóm</label><select id="villageSelect" disabled><option value="__ALL__">Toàn xã</option></select></div>
       <div id="scopeSummary" class="scope-summary">Sau khi phân tích, danh sách thôn/xóm sẽ xuất hiện tại đây.</div>
       <div class="scope-actions"><button id="exportScopeBtn" class="secondary" disabled>Xuất toàn bộ phạm vi</button></div>
     </section>
 
     <nav class="main-menu tabs" aria-label="Menu nghiệp vụ">
-      <button class="tab active" data-tab="overview">📊 Tổng quan</button>
-      <button class="tab" data-tab="mn">🧒 Mầm non</button>
-      <button class="tab" data-tab="th">📘 Tiểu học</button>
-      <button class="tab" data-tab="thcs">🎓 THCS</button>
-      <button class="tab" data-tab="xmc">📝 Xóa mù chữ</button>
-      <button class="tab" data-tab="errors">⚠️ Soát lỗi <span id="errorCountPill" class="pill">0</span></button>
-      <button class="tab" data-tab="data">👥 Dữ liệu</button>
-      <button class="tab" data-tab="guide">❔ Hướng dẫn</button>
+      <button class="tab active" data-tab="overview">Tổng quan</button>
+      <button class="tab" data-tab="mn">Mầm non</button>
+      <button class="tab" data-tab="th">Tiểu học</button>
+      <button class="tab" data-tab="thcs">THCS</button>
+      <button class="tab" data-tab="xmc">Xóa mù chữ</button>
+      <button class="tab" data-tab="errors">Kiểm tra <span id="errorCountPill" class="pill">0</span></button>
+      <button class="tab" data-tab="data">Phiếu điều tra</button>
+      <button class="tab" data-tab="guide">Trợ giúp</button>
     </nav>
 
     <section id="overview" class="tabpage active">
-      <div id="kpiGrid" class="kpi-grid"><article class="kpi"><span>Nhân khẩu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Hộ/phiếu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>15–18 tuổi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article><article class="kpi"><span>Soát lỗi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article></div>
-      <div class="two-col"><section class="panel compact"><div class="section-head"><h3>Phân bố nhóm tuổi</h3><span id="yearLabel">Năm 2026</span></div><div id="ageBars" class="bar-list empty">Chưa có dữ liệu.</div></section><section class="panel compact"><div class="section-head"><h3>Chỉ số nhanh</h3><span id="overviewScope">Toàn xã</span></div><div id="quickChecks" class="check-list empty">Chưa có dữ liệu.</div></section></div>
+      <div id="kpiGrid" class="kpi-grid">
+        <article class="kpi"><span>Nhân khẩu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article>
+        <article class="kpi"><span>Hộ/phiếu</span><strong>—</strong><small>Chưa tải dữ liệu</small></article>
+        <article class="kpi"><span>15–18 tuổi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article>
+        <article class="kpi"><span>Soát lỗi</span><strong>—</strong><small>Chưa tải dữ liệu</small></article>
+      </div>
+      <div class="two-col">
+        <section class="panel compact"><div class="section-head"><h3>Phân bố nhóm tuổi</h3><span id="yearLabel">Năm 2026</span></div><div id="ageBars" class="bar-list empty">Chưa có dữ liệu.</div></section>
+        <section class="panel compact"><div class="section-head"><h3>Chỉ số nhanh</h3><span id="overviewScope">Toàn xã</span></div><div id="quickChecks" class="check-list empty">Chưa có dữ liệu.</div></section>
+      </div>
     </section>
 
-    <section id="mn" class="tabpage"><div class="panel report-workspace"><div class="report-head"><div><h2>🧒 Phổ cập giáo dục Mầm non</h2><p>Chọn biểu để xem theo phạm vi thôn/xóm đang chọn.</p></div><button class="secondary" data-export-scope-group="mn" disabled>Xuất Excel Mầm non</button></div><div class="report-submenu" data-menu-group="mn"><button class="active" data-report-sheet="MN-1TE">MN-1TE · Trẻ em</button><button data-report-sheet="MN-2">MN-2 · Tổng hợp</button><button data-report-sheet="MN-CSVC">MN-CSVC</button><button data-report-sheet="MN-ĐN">MN-ĐN</button></div><div class="report-meta"><h3 id="title-mn">MN-1TE · Thống kê trẻ em</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-mn" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div><div class="hint">CSVC và đội ngũ không có trong phiếu hộ dân; các biểu này được tạo khung và cần bổ sung số liệu từ nhà trường.</div></div></section>
+    <section id="mn" class="tabpage"><div class="panel report-workspace">
+      <div class="report-head"><div><h2>Phổ cập giáo dục Mầm non</h2><p>Xem biểu theo phạm vi đang chọn.</p></div><button class="secondary" data-export-scope-group="mn" disabled>Xuất Excel Mầm non</button></div>
+      <div class="report-submenu" data-menu-group="mn"><button class="active" data-report-sheet="MN-1TE">MN-1TE</button><button data-report-sheet="MN-2">MN-2</button><button data-report-sheet="MN-CSVC">MN-CSVC</button><button data-report-sheet="MN-ĐN">MN-ĐN</button></div>
+      <div class="report-meta"><h3 id="title-mn">MN-1TE</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-mn" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div>
+    </div></section>
 
-    <section id="th" class="tabpage"><div class="panel report-workspace"><div class="report-head"><div><h2>📘 Phổ cập giáo dục Tiểu học</h2><p>Xem và xuất riêng bộ biểu Tiểu học theo từng thôn hoặc toàn xã.</p></div><button class="secondary" data-export-scope-group="th" disabled>Xuất Excel Tiểu học</button></div><div class="report-submenu" data-menu-group="th"><button class="active" data-report-sheet="TH-1TE">TH-1TE · Trẻ em</button><button data-report-sheet="TH-2">TH-2 · Tổng hợp</button><button data-report-sheet="TH-CSVC">TH-CSVC</button><button data-report-sheet="TH-DN">TH-ĐN</button></div><div class="report-meta"><h3 id="title-th">TH-1TE · Thống kê trẻ em</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-th" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div></div></section>
+    <section id="th" class="tabpage"><div class="panel report-workspace">
+      <div class="report-head"><div><h2>Phổ cập giáo dục Tiểu học</h2><p>Xem biểu theo phạm vi đang chọn.</p></div><button class="secondary" data-export-scope-group="th" disabled>Xuất Excel Tiểu học</button></div>
+      <div class="report-submenu" data-menu-group="th"><button class="active" data-report-sheet="TH-1TE">TH-1TE</button><button data-report-sheet="TH-2">TH-2</button><button data-report-sheet="TH-CSVC">TH-CSVC</button><button data-report-sheet="TH-DN">TH-ĐN</button></div>
+      <div class="report-meta"><h3 id="title-th">TH-1TE</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-th" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div>
+    </div></section>
 
-    <section id="thcs" class="tabpage"><div class="panel report-workspace"><div class="report-head"><div><h2>🎓 Phổ cập giáo dục THCS</h2><p>Bộ biểu THCS được tách riêng và có thể xem theo từng thôn/xóm.</p></div><button class="secondary" data-export-scope-group="thcs" disabled>Xuất Excel THCS</button></div><div class="report-submenu" data-menu-group="thcs"><button class="active" data-report-sheet="THCS-1TTN">THCS-1TTN</button><button data-report-sheet="THCS-2.1">THCS-2.1</button><button data-report-sheet="THCS-2.2">THCS-2.2</button><button data-report-sheet="THCS-CSVC">THCS-CSVC</button><button data-report-sheet="THCS-DN">THCS-ĐN</button></div><div class="report-meta"><h3 id="title-thcs">THCS-1TTN · Thanh thiếu niên</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-thcs" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div></div></section>
+    <section id="thcs" class="tabpage"><div class="panel report-workspace">
+      <div class="report-head"><div><h2>Phổ cập giáo dục THCS</h2><p>Xem biểu theo phạm vi đang chọn.</p></div><button class="secondary" data-export-scope-group="thcs" disabled>Xuất Excel THCS</button></div>
+      <div class="report-submenu" data-menu-group="thcs"><button class="active" data-report-sheet="THCS-1TTN">THCS-1TTN</button><button data-report-sheet="THCS-2.1">THCS-2.1</button><button data-report-sheet="THCS-2.2">THCS-2.2</button><button data-report-sheet="THCS-CSVC">THCS-CSVC</button><button data-report-sheet="THCS-DN">THCS-ĐN</button></div>
+      <div class="report-meta"><h3 id="title-thcs">THCS-1TTN</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-thcs" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div>
+    </div></section>
 
-    <section id="xmc" class="tabpage"><div class="panel report-workspace"><div class="report-head"><div><h2>📝 Xóa mù chữ</h2><p>Các biểu XMC được quản lý độc lập với các cấp học.</p></div><button class="secondary" data-export-scope-group="xmc" disabled>Xuất Excel Xóa mù chữ</button></div><div class="report-submenu" data-menu-group="xmc"><button class="active" data-report-sheet="CMC-1">CMC-1</button><button data-report-sheet="CMC-2">CMC-2</button><button data-report-sheet="CMC-3">CMC-3</button><button data-report-sheet="CMC-4">CMC-4</button></div><div class="report-meta"><h3 id="title-xmc">CMC-1 · Tình hình XMC</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-xmc" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu.</div></div></div></section>
+    <section id="xmc" class="tabpage"><div class="panel report-workspace">
+      <div class="report-head"><div><h2>Xóa mù chữ</h2><p>Xem biểu tổng hợp hoặc lọc danh sách đối tượng mù chữ.</p></div><button class="secondary" data-export-scope-group="xmc" disabled>Xuất Excel Xóa mù chữ</button></div>
+      <div class="report-submenu" data-menu-group="xmc"><button class="active" data-report-sheet="CMC-1">CMC-1</button><button data-report-sheet="CMC-2">CMC-2</button><button data-report-sheet="CMC-3">CMC-3</button><button data-report-sheet="CMC-4">CMC-4</button></div>
+      <div class="report-meta"><h3 id="title-xmc">CMC-1 · Tình hình XMC</h3><span class="scope-pill" data-scope-pill>Toàn xã</span></div><div id="preview-xmc" class="report-preview"><div class="blank">Phân tích dữ liệu để xem biểu hoặc danh sách MĐ1/MĐ2.</div></div>
+    </div></section>
 
-    <section id="errors" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Danh sách cần rà soát</h3><p id="errorScopeText">Đang xem lỗi của Toàn xã.</p></div><select id="errorFilter"><option value="all">Tất cả mức độ</option><option value="error">Lỗi</option><option value="warning">Cảnh báo</option></select></div><div class="table-wrap"><table><thead><tr><th>Mức</th><th>File nguồn</th><th>Dòng</th><th>Đối tượng</th><th>Thôn/xóm</th><th>Nội dung</th><th>Gợi ý</th></tr></thead><tbody id="errorTable"><tr><td colspan="7" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
+    <section id="errors" class="tabpage"><section class="panel compact">
+      <div class="toolbar"><div><h3>Danh sách cần rà soát</h3><p id="errorScopeText">Đang xem lỗi của Toàn xã.</p></div><select id="errorFilter"><option value="all">Tất cả mức độ</option><option value="error">Lỗi</option><option value="warning">Cảnh báo</option></select></div>
+      <div class="table-wrap"><table><thead><tr><th>Mức</th><th>File nguồn</th><th>Dòng</th><th>Đối tượng</th><th>Thôn/xóm</th><th>Nội dung</th><th>Gợi ý</th></tr></thead><tbody id="errorTable"><tr><td colspan="7" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div>
+    </section></section>
 
-    <section id="data" class="tabpage"><section class="panel compact"><div class="toolbar"><div><h3>Dữ liệu đã chuẩn hóa</h3><p id="dataScopeText">Đang xem dữ liệu của Toàn xã.</p></div><input id="searchInput" class="search" type="search" placeholder="Tìm họ tên, số phiếu, trường…" /></div><div class="table-wrap"><table><thead><tr><th>File</th><th>Dòng</th><th>Họ tên</th><th>Năm sinh</th><th>Tuổi</th><th>Thôn/xóm</th><th>Khối hiện tại</th><th>Nhóm tuổi</th><th>XMC</th><th>K.tật</th></tr></thead><tbody id="dataTable"><tr><td colspan="10" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div></section></section>
+    <section id="data" class="tabpage"><section class="panel compact">
+      <div class="toolbar"><div><h3>Dữ liệu phiếu điều tra</h3><p id="dataScopeText">Đang xem dữ liệu của Toàn xã.</p></div><input id="searchInput" class="search" type="search" placeholder="Tìm họ tên, số phiếu, trường…"></div>
+      <div class="table-wrap"><table><thead><tr><th>File</th><th>Dòng</th><th>Họ tên</th><th>Năm sinh</th><th>Tuổi</th><th>Thôn/xóm</th><th>Khối hiện tại</th><th>Nhóm tuổi</th><th>XMC</th><th>K.tật</th></tr></thead><tbody id="dataTable"><tr><td colspan="10" class="muted">Chưa có dữ liệu.</td></tr></tbody></table></div>
+    </section></section>
 
-    <section id="guide" class="tabpage"><section class="panel prose"><h3>Quy trình sử dụng</h3><ol><li>Chọn một hoặc nhiều file điều tra gốc theo mẫu có sheet <code>MauNhapLieu</code>.</li><li>Nhấn <strong>Phân tích dữ liệu</strong>.</li><li>Tại <strong>Phạm vi báo cáo</strong>, chọn <strong>Toàn xã</strong> hoặc một thôn/xóm.</li><li>Chọn menu <strong>Mầm non / Tiểu học / THCS / Xóa mù chữ</strong>.</li><li>Chọn biểu con để xem trực tiếp trên màn hình.</li><li>Dùng nút <strong>Xuất Excel</strong> của menu để tải đúng bộ biểu của phạm vi đang chọn.</li><li>Dùng <strong>Xuất toàn bộ phạm vi</strong> để tải toàn bộ hồ sơ của thôn đang chọn hoặc toàn xã.</li></ol><div class="notice"><strong>Chuẩn đầu vào:</strong> phần mềm ưu tiên file điều tra gốc như “1. Bản Cháng.xls”, dữ liệu bắt đầu từ dòng 5 của sheet MauNhapLieu.</div></section></section>
+    <section id="guide" class="tabpage"><section class="panel prose"><h3>Hướng dẫn nhanh</h3><ol><li>Vào <strong>Phiếu điều tra</strong> để nhập Excel hoặc nhập trực tiếp.</li><li>Phân tích dữ liệu.</li><li>Chọn thôn/xóm hoặc Toàn xã.</li><li>Vào Mầm non, Tiểu học, THCS hoặc Xóa mù chữ để xem và xuất biểu.</li><li>Trong Xóa mù chữ có thể lọc riêng người mù chữ mức độ 1 và mức độ 2.</li></ol></section></section>
   </main>
 
-  <footer><span>PCGD–XMC Smart · mã nguồn công khai</span><a href="https://github.com/trungtuyen/PCGDXMC" target="_blank" rel="noreferrer">GitHub repository ↗</a></footer>
+  <footer><span>PCGD–XMC Smart · dữ liệu xử lý tại trình duyệt</span><a href="https://github.com/trungtuyen/PCGDXMC" target="_blank" rel="noreferrer">GitHub repository</a></footer>
+
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="core-v02.js"></script>
   <script src="reports-v02.js"></script>
   <script src="groups-v03.js"></script>
   <script src="viewer-v04.js"></script>
   <script src="app.js"></script>
+  <script src="xmc-lists-v09.js"></script>
 </body>
 </html>
