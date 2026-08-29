@@ -1,11 +1,15 @@
 {
   "name": "pcgdxmc-api",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js && node --check auth.js && node --check create-admin.js && node --check migrate.js && node --check loadtest.js && node --check smoke-test.js",
+    "migrate": "node migrate.js",
+    "create-admin": "node create-admin.js",
+    "smoke": "node smoke-test.js",
+    "loadtest": "node loadtest.js"
   },
   "engines": {"node": ">=22"},
   "dependencies": {
@@ -13,6 +17,7 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/jwt": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
+    "bcryptjs": "^3.0.2",
     "fastify": "^5.6.1",
     "pg": "^8.16.3"
   }

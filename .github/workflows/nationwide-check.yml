@@ -5,6 +5,11 @@ on:
     paths:
       - 'nationwide-v13.js'
       - 'gdmn-high-level-v14.js'
+      - 'auth-v14.js'
+      - 'aggregate-export-v14.js'
+      - 'admin-users-v15.js'
+      - 'xmc-menu-v11.js'
+      - 'sw.js'
       - 'index.html'
       - 'backend/**'
       - '.github/workflows/nationwide-check.yml'
@@ -25,10 +30,27 @@ jobs:
         run: |
           node --check nationwide-v13.js
           node --check gdmn-high-level-v14.js
+          node --check auth-v14.js
+          node --check aggregate-export-v14.js
+          node --check admin-users-v15.js
+          node --check xmc-menu-v11.js
+          node --check sw.js
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Check backend JavaScript
-        run: node --check backend/server.js
-      - name: Verify GDMN high-level script is loaded
-        run: grep -q 'gdmn-high-level-v14.js' index.html
+        working-directory: backend
+        run: npm run check
+      - name: Verify modules are reachable and cached
+        run: |
+          grep -q 'nationwide-v13.js' index.html
+          grep -q 'gdmn-high-level-v14.js' index.html
+          grep -q 'auth-v14.js' xmc-menu-v11.js
+          grep -q 'aggregate-export-v14.js' xmc-menu-v11.js
+          grep -q 'admin-users-v15.js' xmc-menu-v11.js
+          grep -q 'auth-v14.js' sw.js
+          grep -q 'aggregate-export-v14.js' sw.js
+          grep -q 'admin-users-v15.js' sw.js
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
@@ -39,3 +61,60 @@ jobs:
           assert count==34, f'Expected 34 provinces, found {count}'
           print('Province entries:',count)
           PY
+      - name: Guard against hard-coded secrets in JavaScript
+        run: |
+          ! grep -R --include='*.js' -E "(JWT_SECRET|ADMIN_PASSWORD|API_AUTH_TOKEN)[[:space:]]*=[[:space:]]*['\"][^'\"]{12,}['\"]" backend
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pcgd
+          POSTGRES_PASSWORD: pcgd_ci
+          POSTGRES_DB: pcgdxmc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pcgd -d pcgdxmc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://pcgd:pcgd_ci@127.0.0.1:5432/pcgdxmc
+      DB_SSL: 'false'
+      JWT_SECRET: ci-only-jwt-secret-not-for-production-123456789
+      CORS_ORIGINS: http://127.0.0.1
+      SMOKE_USERNAME: ci-admin
+      SMOKE_PASSWORD: Ci-Test-Password-123!
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: backend
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Migrate database
+        working-directory: backend
+        run: npm run migrate
+      - name: Create CI administrator
+        working-directory: backend
+        env:
+          ADMIN_USERNAME: ci-admin
+          ADMIN_PASSWORD: Ci-Test-Password-123!
+          ADMIN_DISPLAY_NAME: CI Admin
+          ADMIN_ROLE: super_admin
+        run: npm run create-admin
+      - name: Start API
+        working-directory: backend
+        run: nohup npm start > /tmp/pcgdxmc-api.log 2>&1 &
+      - name: Wait for health
+        run: |
+          for i in {1..30}; do curl -fsS http://127.0.0.1:8080/v1/health && exit 0; sleep 1; done
+          cat /tmp/pcgdxmc-api.log
+          exit 1
+      - name: Run authentication and aggregate smoke test
+        working-directory: backend
+        run: npm run smoke
