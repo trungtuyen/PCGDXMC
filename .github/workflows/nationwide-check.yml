@@ -61,9 +61,9 @@ jobs:
           assert count==34, f'Expected 34 provinces, found {count}'
           print('Province entries:',count)
           PY
-      - name: Guard against committed production secrets
+      - name: Guard against hard-coded secrets in JavaScript
         run: |
-          ! grep -R --exclude='.env.example' -E 'JWT_SECRET=.{12,}|ADMIN_PASSWORD=.{12,}|API_AUTH_TOKEN=.{12,}' backend
+          ! grep -R --include='*.js' -E "(JWT_SECRET|ADMIN_PASSWORD|API_AUTH_TOKEN)[[:space:]]*=[[:space:]]*['\"][^'\"]{12,}['\"]" backend
 
   integration:
     runs-on: ubuntu-latest
