@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: pcgdxmc-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 8080
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: CORS_ORIGINS
+        value: https://trungtuyen.github.io
+      - key: DB_SSL
+        value: true
+      - key: DB_POOL_MAX
+        value: 30
+      - key: RATE_LIMIT_MAX
+        value: 600
