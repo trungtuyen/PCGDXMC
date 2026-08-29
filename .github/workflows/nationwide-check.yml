@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'nationwide-v13.js'
+      - 'gdmn-high-level-v14.js'
+      - 'index.html'
       - 'backend/**'
       - '.github/workflows/nationwide-check.yml'
   workflow_dispatch:
@@ -20,9 +22,13 @@ jobs:
         with:
           node-version: '22'
       - name: Check frontend JavaScript
-        run: node --check nationwide-v13.js
+        run: |
+          node --check nationwide-v13.js
+          node --check gdmn-high-level-v14.js
       - name: Check backend JavaScript
         run: node --check backend/server.js
+      - name: Verify GDMN high-level script is loaded
+        run: grep -q 'gdmn-high-level-v14.js' index.html
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
