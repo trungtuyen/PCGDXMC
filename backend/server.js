@@ -39,6 +39,12 @@ function ensureScope(req,reply,province,commune=''){
   if(r==='commune_admin'&&province===userProvince(req)&&commune&&commune===userCommune(req))return true;
   reply.code(403).send({error:'forbidden_scope'});return false;
 }
+function ensureCommuneDataScope(req,reply,province,commune=''){
+  const r=role(req);
+  if(r==='super_admin')return true;
+  if(r==='commune_admin'&&province===userProvince(req)&&commune&&commune===userCommune(req))return true;
+  reply.code(403).send({error:'commune_detail_only'});return false;
+}
 function clampInt(v,min,max,def){const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.trunc(n))):def}
 function metricObj(v){return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}
 function sumMetrics(rows){
@@ -57,7 +63,7 @@ app.post('/v1/summaries/upsert',async(req,reply)=>{
   const b=req.body||{},year=clampInt(b.year,2000,2100,0),province=String(b.provinceKey||''),name=String(b.communeName||'').trim();
   const commune=String(b.communeCode||'').trim()||slug(name);
   if(!year||!province||!commune||!name)return reply.code(400).send({error:'missing_scope_fields'});
-  if(!ensureScope(req,reply,province,commune))return;
+  if(!ensureCommuneDataScope(req,reply,province,commune))return;
   const metrics=metricObj(b.metrics),client=await pool.connect();
   try{
     await client.query('BEGIN');
@@ -87,7 +93,7 @@ app.get('/v1/aggregates',async(req,reply)=>{
 app.get('/v1/persons',async(req,reply)=>{
   const q=req.query||{},province=String(q.province||userProvince(req)||''),commune=String(q.commune||userCommune(req)||''),limit=clampInt(q.limit,1,100,50),cursor=decodeCursor(q.cursor);
   if(!province||!commune)return reply.code(400).send({error:'province_and_commune_required'});
-  if(!ensureScope(req,reply,province,commune))return;
+  if(!ensureCommuneDataScope(req,reply,province,commune))return;
   const params=[province,commune];let after='';if(cursor){params.push(cursor.ts,cursor.id);after=` AND (updated_at,person_id) > ($3::timestamptz,$4::uuid)`}
   params.push(limit+1);const lim=`$${params.length}`;
   const {rows}=await pool.query(`SELECT person_id,province_key,commune_code,school_id,household_key,full_name,birth_date,sex,updated_at,row_version,payload FROM persons WHERE province_key=$1 AND commune_code=$2 AND deleted_at IS NULL${after} ORDER BY updated_at,person_id LIMIT ${lim}`,params);
@@ -97,7 +103,7 @@ app.get('/v1/persons',async(req,reply)=>{
 
 app.post('/v1/persons/batch',async(req,reply)=>{
   const body=req.body||{},province=String(body.provinceKey||''),commune=String(body.communeCode||''),items=Array.isArray(body.items)?body.items:[];
-  if(!province||!commune)return reply.code(400).send({error:'province_and_commune_required'});if(!ensureScope(req,reply,province,commune))return;
+  if(!province||!commune)return reply.code(400).send({error:'province_and_commune_required'});if(!ensureCommuneDataScope(req,reply,province,commune))return;
   if(!items.length||items.length>200)return reply.code(400).send({error:'batch_size_must_be_1_to_200'});
   const client=await pool.connect();let upserted=0;
   try{await client.query('BEGIN');for(const x of items){const id=String(x.personId||'');if(!id)continue;await client.query(`INSERT INTO persons(province_key,person_id,commune_code,school_id,household_key,full_name,birth_date,sex,updated_at,row_version,payload)
