@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check auth.js && node --check create-admin.js",
-    "create-admin": "node create-admin.js"
+    "check": "node --check server.js && node --check auth.js && node --check create-admin.js && node --check migrate.js && node --check loadtest.js",
+    "migrate": "node migrate.js",
+    "create-admin": "node create-admin.js",
+    "loadtest": "node loadtest.js"
   },
   "engines": {"node": ">=22"},
   "dependencies": {
