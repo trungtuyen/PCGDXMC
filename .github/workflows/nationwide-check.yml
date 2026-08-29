@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - 'nationwide-v13.js'
-      - 'gdmn-high-level-v14.js'
+      - 'gdmn-forms-v15.js'
       - 'index.html'
+      - 'sw.js'
+      - 'templates/gdmn/**'
       - 'backend/**'
       - '.github/workflows/nationwide-check.yml'
   workflow_dispatch:
@@ -24,11 +26,20 @@ jobs:
       - name: Check frontend JavaScript
         run: |
           node --check nationwide-v13.js
-          node --check gdmn-high-level-v14.js
+          node --check gdmn-forms-v15.js
       - name: Check backend JavaScript
         run: node --check backend/server.js
-      - name: Verify GDMN high-level script is loaded
-        run: grep -q 'gdmn-high-level-v14.js' index.html
+      - name: Verify GDMN v1.5 assets
+        run: |
+          grep -q 'gdmn-forms-v15.js' index.html
+          grep -q 'gdmn-forms-v15.js' sw.js
+          test -f templates/gdmn/MN-01-TE.xlsx
+          test -f templates/gdmn/MN-01-TCDK.xlsx
+          test -f templates/gdmn/MN-01-GV.xlsx
+          test -f templates/gdmn/MN-01-CSVC.xlsx
+          test -f templates/gdmn/MN-01-TC.xlsx
+          test -f templates/gdmn/MN-05-KT.xlsx
+          test -f templates/gdmn/MN-06-SO-PC.xlsx
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
