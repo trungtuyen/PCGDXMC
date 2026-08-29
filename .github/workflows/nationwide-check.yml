@@ -4,10 +4,11 @@ on:
   pull_request:
     paths:
       - 'nationwide-v13.js'
+      - 'gdmn-template-loader-v15.js'
       - 'gdmn-forms-v15.js'
+      - 'gdmn-export-refinements-v15.js'
       - 'index.html'
       - 'sw.js'
-      - 'templates/gdmn/**'
       - 'backend/**'
       - '.github/workflows/nationwide-check.yml'
   workflow_dispatch:
@@ -26,20 +27,27 @@ jobs:
       - name: Check frontend JavaScript
         run: |
           node --check nationwide-v13.js
+          node --check gdmn-template-loader-v15.js
           node --check gdmn-forms-v15.js
+          node --check gdmn-export-refinements-v15.js
       - name: Check backend JavaScript
         run: node --check backend/server.js
       - name: Verify GDMN v1.5 assets
         run: |
+          grep -q 'gdmn-template-loader-v15.js' index.html
           grep -q 'gdmn-forms-v15.js' index.html
+          grep -q 'gdmn-export-refinements-v15.js' index.html
+          grep -q 'gdmn-template-loader-v15.js' sw.js
           grep -q 'gdmn-forms-v15.js' sw.js
-          test -f templates/gdmn/MN-01-TE.xlsx
-          test -f templates/gdmn/MN-01-TCDK.xlsx
-          test -f templates/gdmn/MN-01-GV.xlsx
-          test -f templates/gdmn/MN-01-CSVC.xlsx
-          test -f templates/gdmn/MN-01-TC.xlsx
-          test -f templates/gdmn/MN-05-KT.xlsx
-          test -f templates/gdmn/MN-06-SO-PC.xlsx
+          grep -q 'gdmn-export-refinements-v15.js' sw.js
+          grep -q "MN-01-TE.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-01-TCDK.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-01-GV.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-01-CSVC.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-01-TC.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-05-KT.xlsx" gdmn-template-loader-v15.js
+          grep -q "MN-06-SO-PC.xlsx" gdmn-template-loader-v15.js
+          test -f backend/migrations/002_gdmn_forms.sql
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
