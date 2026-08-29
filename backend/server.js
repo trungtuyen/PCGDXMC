@@ -11,13 +11,15 @@ const PORT=Number(process.env.PORT||8080);
 const DATABASE_URL=process.env.DATABASE_URL;
 if(!DATABASE_URL)throw new Error('DATABASE_URL is required');
 const pool=new Pool({connectionString:DATABASE_URL,max:Number(process.env.DB_POOL_MAX||30),idleTimeoutMillis:30000,connectionTimeoutMillis:10000,ssl:process.env.DB_SSL==='false'?false:{rejectUnauthorized:false}});
+const corsOrigins=(process.env.CORS_ORIGINS||'https://trungtuyen.github.io').split(',').map(x=>x.trim()).filter(Boolean);
 
-await app.register(cors,{origin:(process.env.CORS_ORIGINS||'').split(',').filter(Boolean),credentials:false});
+await app.register(cors,{origin:corsOrigins,credentials:false});
 await app.register(compress,{global:true,encodings:['br','gzip','deflate']});
 await app.register(rateLimit,{max:Number(process.env.RATE_LIMIT_MAX||600),timeWindow:'1 minute'});
 if(process.env.JWT_SECRET)await app.register(jwt,{secret:process.env.JWT_SECRET});
 
 function bearer(req){const h=req.headers.authorization||'';return h.startsWith('Bearer ')?h.slice(7).trim():''}
+function slug(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,80)}
 async function authenticate(req,reply){
   if(req.url==='/v1/health')return;
   if(process.env.JWT_SECRET){try{await req.jwtVerify();return}catch(_){return reply.code(401).send({error:'unauthorized'})}}
@@ -52,7 +54,8 @@ function decodeCursor(v){try{const [ts,id]=JSON.parse(Buffer.from(String(v||''),
 app.get('/v1/health',async()=>({ok:true,service:'pcgdxmc-api',version:'1.0.0',time:new Date().toISOString()}));
 
 app.post('/v1/summaries/upsert',async(req,reply)=>{
-  const b=req.body||{},year=clampInt(b.year,2000,2100,0),province=String(b.provinceKey||''),commune=String(b.communeCode||'').trim(),name=String(b.communeName||'').trim();
+  const b=req.body||{},year=clampInt(b.year,2000,2100,0),province=String(b.provinceKey||''),name=String(b.communeName||'').trim();
+  const commune=String(b.communeCode||'').trim()||slug(name);
   if(!year||!province||!commune||!name)return reply.code(400).send({error:'missing_scope_fields'});
   if(!ensureScope(req,reply,province,commune))return;
   const metrics=metricObj(b.metrics),client=await pool.connect();
@@ -63,7 +66,7 @@ app.post('/v1/summaries/upsert',async(req,reply)=>{
       ON CONFLICT(survey_year,province_key,commune_code) DO UPDATE SET province_name=EXCLUDED.province_name,commune_name=EXCLUDED.commune_name,schema_version=EXCLUDED.schema_version,app_version=EXCLUDED.app_version,metrics=EXCLUDED.metrics,checksum=EXCLUDED.checksum,source_count=EXCLUDED.source_count,generated_at=EXCLUDED.generated_at,updated_at=now()`,
       [year,province,String(b.provinceName||province),commune,name,clampInt(b.schemaVersion,1,99,1),String(b.appVersion||''),JSON.stringify(metrics),String(b.checksum||''),clampInt(b.sourceCount,0,1000000,0),b.generatedAt?new Date(b.generatedAt):null]);
     await client.query(`INSERT INTO audit_log(actor_id,actor_role,province_key,commune_code,action,entity_type,entity_id,request_id,details) VALUES($1,$2,$3,$4,'UPSERT','commune_summary',$5,$6,$7::jsonb)`,[req.user?.sub||'',role(req),province,commune,`${year}|${province}|${commune}`,req.id,JSON.stringify({checksum:b.checksum||''})]);
-    await client.query('COMMIT');return {ok:true,updatedAt:new Date().toISOString()};
+    await client.query('COMMIT');return {ok:true,communeCode:commune,updatedAt:new Date().toISOString()};
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 });
 
