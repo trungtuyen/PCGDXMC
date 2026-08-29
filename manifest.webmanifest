@@ -1,0 +1,9 @@
+{
+  "name": "PCGD–XMC Smart",
+  "short_name": "PCGDXMC",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f7f6",
+  "theme_color": "#0f766e",
+  "description": "Công cụ local-first hỗ trợ đọc, tính và soát lỗi dữ liệu PCGD–XMC từ Excel."
+}
