@@ -5,6 +5,10 @@ on:
     paths:
       - 'nationwide-v13.js'
       - 'gdmn-high-level-v14.js'
+      - 'auth-v14.js'
+      - 'aggregate-export-v14.js'
+      - 'xmc-menu-v11.js'
+      - 'sw.js'
       - 'index.html'
       - 'backend/**'
       - '.github/workflows/nationwide-check.yml'
@@ -25,10 +29,26 @@ jobs:
         run: |
           node --check nationwide-v13.js
           node --check gdmn-high-level-v14.js
+          node --check auth-v14.js
+          node --check aggregate-export-v14.js
+          node --check xmc-menu-v11.js
+          node --check sw.js
       - name: Check backend JavaScript
-        run: node --check backend/server.js
-      - name: Verify GDMN high-level script is loaded
-        run: grep -q 'gdmn-high-level-v14.js' index.html
+        working-directory: backend
+        run: |
+          node --check server.js
+          node --check auth.js
+          node --check create-admin.js
+          node --check migrate.js
+          node --check loadtest.js
+      - name: Verify modules are reachable and cached
+        run: |
+          grep -q 'nationwide-v13.js' index.html
+          grep -q 'gdmn-high-level-v14.js' index.html
+          grep -q 'auth-v14.js' xmc-menu-v11.js
+          grep -q 'aggregate-export-v14.js' xmc-menu-v11.js
+          grep -q 'auth-v14.js' sw.js
+          grep -q 'aggregate-export-v14.js' sw.js
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
@@ -39,3 +59,6 @@ jobs:
           assert count==34, f'Expected 34 provinces, found {count}'
           print('Province entries:',count)
           PY
+      - name: Guard against committed production secrets
+        run: |
+          ! grep -R --exclude='.env.example' -E 'JWT_SECRET=.{12,}|ADMIN_PASSWORD=.{12,}|API_AUTH_TOKEN=.{12,}' backend
