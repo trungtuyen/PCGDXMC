@@ -11,10 +11,14 @@
   const activeSheets={mn:'MN-1TE',th:'TH-1TE',thcs:'THCS-1TTN',xmc:'CMC-1'};
   const file=$('excelFile'),analyze=$('analyzeBtn'),exportBtn=$('exportBtn'),exportScopeBtn=$('exportScopeBtn'),status=$('status'),year=$('yearInput'),village=$('villageSelect');
 
+  setupMultiFileUI();
+  const badge=document.querySelector('.badge');if(badge)badge.textContent='Beta 0.5';
+  const fileLabel=document.querySelector('label[for="excelFile"]');if(fileLabel)fileLabel.textContent='Chọn nhiều phiếu điều tra gốc (.xls/.xlsx)';
+
   year.addEventListener('input',()=>{yearTouched=true});
   file.addEventListener('change',()=>{
-    selectedFiles=[...(file.files||[])];analyze.disabled=!selectedFiles.length;
-    setStatus(selectedFiles.length===1?`Đã chọn: ${selectedFiles[0].name}. Nhấn “Phân tích dữ liệu”.`:selectedFiles.length>1?`Đã chọn ${selectedFiles.length} file điều tra gốc. Phần mềm sẽ gộp theo thôn/xóm.`:'Chọn file điều tra gốc để bắt đầu.','info');
+    addFiles([...(file.files||[])]);
+    file.value='';
   });
   analyze.addEventListener('click',run);
   village.addEventListener('change',()=>{if(result)renderScope(true)});
@@ -40,6 +44,49 @@
     catch(e){setStatus(e?.message||'Không thể xuất Excel.','error');}
   }));
 
+  function setupMultiFileUI(){
+    file.setAttribute('multiple','multiple');
+    const panel=document.querySelector('.import-panel');
+    if(!panel||$('selectedFilePanel'))return;
+    const box=document.createElement('section');
+    box.id='selectedFilePanel';box.className='panel';
+    box.style.cssText='margin-top:10px;padding:14px 16px;display:none';
+    box.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px"><div><strong id="selectedFileCount">0 phiếu điều tra</strong><div style="font-size:12px;color:var(--muted);margin-top:3px">Có thể chọn nhiều file một lần hoặc bấm Chọn tệp nhiều lần để thêm tiếp.</div></div><button id="clearFilesBtn" class="secondary" type="button" style="height:34px">Xóa tất cả</button></div><div id="selectedFileList" style="display:flex;gap:8px;flex-wrap:wrap"></div>`;
+    panel.insertAdjacentElement('afterend',box);
+    $('clearFilesBtn').addEventListener('click',()=>{selectedFiles=[];invalidateAfterFileChange();renderFileQueue();setStatus('Đã xóa toàn bộ phiếu điều tra.','info');});
+  }
+
+  function fileKey(f){return `${f.name}|${f.size}|${f.lastModified}`;}
+  function addFiles(files){
+    const valid=files.filter(f=>/\.(xls|xlsx|xlsm)$/i.test(f.name));
+    const existing=new Set(selectedFiles.map(fileKey));let added=0,duplicate=0;
+    valid.forEach(f=>{const k=fileKey(f);if(existing.has(k)){duplicate++;return;}existing.add(k);selectedFiles.push(f);added++;});
+    if(added)invalidateAfterFileChange();
+    renderFileQueue();
+    analyze.disabled=!selectedFiles.length;
+    if(!selectedFiles.length)setStatus('Chọn một hoặc nhiều phiếu điều tra gốc để bắt đầu.','info');
+    else setStatus(`Đã chọn ${selectedFiles.length} phiếu điều tra${added?` · vừa thêm ${added}`:''}${duplicate?` · bỏ qua ${duplicate} file trùng`:''}. Nhấn “Phân tích dữ liệu” khi đã chọn đủ.`, 'info');
+  }
+
+  function removeFile(index){
+    const removed=selectedFiles.splice(index,1)[0];invalidateAfterFileChange();renderFileQueue();analyze.disabled=!selectedFiles.length;
+    setStatus(removed?`Đã bỏ “${removed.name}”. Còn ${selectedFiles.length} phiếu điều tra.`:'Danh sách file đã thay đổi.','info');
+  }
+
+  function renderFileQueue(){
+    const box=$('selectedFilePanel'),list=$('selectedFileList'),count=$('selectedFileCount');if(!box||!list||!count)return;
+    box.style.display=selectedFiles.length?'block':'none';count.textContent=`${selectedFiles.length} phiếu điều tra đã chọn`;
+    list.innerHTML=selectedFiles.map((f,i)=>`<div style="display:flex;align-items:center;gap:7px;background:#f5f9f8;border:1px solid var(--line);border-radius:999px;padding:6px 8px 6px 11px;font-size:12px"><span title="${esc(f.name)}">${esc(f.name)}</span><button type="button" data-remove-file="${i}" aria-label="Bỏ file" style="border:0;background:#e5ecea;border-radius:999px;width:23px;height:23px;cursor:pointer;font-weight:800">×</button></div>`).join('');
+    list.querySelectorAll('[data-remove-file]').forEach(btn=>btn.addEventListener('click',()=>removeFile(Number(btn.dataset.removeFile))));
+  }
+
+  function invalidateAfterFileChange(){
+    if(!result)return;
+    result=null;setExportState(false);village.disabled=true;village.innerHTML='<option value="__ALL__">Toàn xã</option>';
+    $('scopeSummary').textContent='Danh sách phiếu đã thay đổi. Hãy phân tích lại để cập nhật báo cáo.';
+    ['mn','th','thcs','xmc'].forEach(g=>{const box=$(`preview-${g}`);if(box)box.innerHTML='<div class="blank">Danh sách phiếu đã thay đổi. Hãy phân tích lại dữ liệu.</div>';});
+  }
+
   function sourceBase(){return selectedFiles.length===1?selectedFiles[0].name:'PCGDXMC_ToanXa';}
   function scopeLabel(){return village.value==='__ALL__'?'Toàn xã':displayVillage(village.value);}
   function current(){return result?PCGDViewer.scopeResult(result,village.value):null;}
@@ -47,11 +94,11 @@
 
   async function run(){
     if(!selectedFiles.length)return;
-    analyze.disabled=true;setExportState(false);village.disabled=true;setStatus('Đang đọc file điều tra gốc và phân tích dữ liệu…','info');
+    analyze.disabled=true;setExportState(false);village.disabled=true;setStatus(`Đang đọc ${selectedFiles.length} phiếu điều tra gốc…`,'info');
     try{
       const items=[];
       for(let i=0;i<selectedFiles.length;i++){
-        const f=selectedFiles[i];setStatus(`Đang đọc ${i+1}/${selectedFiles.length}: ${f.name}…`,'info');
+        const f=selectedFiles[i];setStatus(`Đang đọc phiếu ${i+1}/${selectedFiles.length}: ${f.name}…`,'info');
         const buf=await f.arrayBuffer();
         const wb=XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellStyles:false,cellDates:false});
         if(!wb.Sheets?.MauNhapLieu)throw new Error(`${f.name}: không có sheet “MauNhapLieu”. Hãy chọn đúng file điều tra gốc như mẫu Bản Cháng.xls.`);
@@ -63,7 +110,7 @@
       result=PCGDEngine.analyzeWorkbooks(items,yearTouched?Number(year.value):0);
       year.value=result.year;$('yearLabel').textContent=`Năm ${result.year}`;
       populateVillages();setExportState(true);renderScope(false);
-      setStatus(`Hoàn tất: ${fmt(result.summary.total)} đối tượng · ${fmt(result.summary.villages)} thôn/xóm. Hãy chọn thôn và menu biểu cần xem.`,'success');
+      setStatus(`Hoàn tất ${selectedFiles.length} phiếu: ${fmt(result.summary.total)} đối tượng · ${fmt(result.summary.villages)} thôn/xóm. Có thể chọn thôn và xem/xuất từng bộ biểu.`, 'success');
     }catch(e){console.error(e);result=null;setStatus(e?.message||'Không thể phân tích file.','error');}
     finally{analyze.disabled=!selectedFiles.length;village.disabled=!result;}
   }
@@ -95,8 +142,7 @@
     const box=$(`preview-${group}`);if(!box)return;
     box.innerHTML='<div class="blank">Đang tạo biểu xem trước…</div>';
     try{
-      const data=PCGDViewer.previewSheet(result,sheetName,village.value);
-      const rows=data.rows;
+      const data=PCGDViewer.previewSheet(result,sheetName,village.value),rows=data.rows;
       const titleEl=$(`title-${group}`);if(titleEl)titleEl.textContent=title||sheetName;
       if(!rows.length){box.innerHTML='<div class="blank">Không có dữ liệu cho biểu này trong phạm vi đang chọn.</div>';return;}
       box.innerHTML=tableHtml(rows);
@@ -106,12 +152,10 @@
   function tableHtml(rows){
     const width=Math.max(1,...rows.map(r=>r.length));
     const body=rows.map((r,ri)=>{
-      const cells=Array.from({length:width},(_,ci)=>r[ci]??'');
-      const nonempty=cells.filter(x=>String(x).trim()).length;
+      const cells=Array.from({length:width},(_,ci)=>r[ci]??''),nonempty=cells.filter(x=>String(x).trim()).length;
       if(!nonempty)return `<tr class="spacer"><td colspan="${width}">&nbsp;</td></tr>`;
       if(ri===0)return `<tr>${cells.map((v,ci)=>ci===0?`<th colspan="${width}">${esc(v)}</th>`:'').join('')}</tr>`;
-      const tag=ri<=3?'th':'td';
-      return `<tr>${cells.map(v=>`<${tag}>${esc(v)}</${tag}>`).join('')}</tr>`;
+      const tag=ri<=3?'th':'td';return `<tr>${cells.map(v=>`<${tag}>${esc(v)}</${tag}>`).join('')}</tr>`;
     }).join('');
     return `<table><tbody>${body}</tbody></table>`;
   }
