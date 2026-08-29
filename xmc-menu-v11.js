@@ -86,3 +86,11 @@
   s.dataset.pcgdExcelExport='1';
   document.head.appendChild(s);
 })();
+
+(function(){
+  if(document.querySelector('script[data-pcgd-education-menus]'))return;
+  const s=document.createElement('script');
+  s.src='./education-menus-v13.js';
+  s.dataset.pcgdEducationMenus='1';
+  document.head.appendChild(s);
+})();
