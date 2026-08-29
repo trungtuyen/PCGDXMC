@@ -78,3 +78,11 @@
   window.addEventListener('scroll',()=>{if(dropdown.style.display==='block')position();},{passive:true});
   window.addEventListener('keydown',ev=>{if(ev.key==='Escape')close();});
 })();
+
+(function(){
+  if(window.PCGDExcelExport?.installed||document.querySelector('script[data-pcgd-excel-export]'))return;
+  const s=document.createElement('script');
+  s.src='./excel-export-v12.js';
+  s.dataset.pcgdExcelExport='1';
+  document.head.appendChild(s);
+})();
