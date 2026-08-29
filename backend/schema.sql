@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS pcgd_units (
 );
 CREATE INDEX IF NOT EXISTS pcgd_units_province_idx ON pcgd_units(province_key, active);
 
--- Bảng nhân khẩu chi tiết. Khóa chính bao gồm partition key để PostgreSQL cho phép partitioning.
 CREATE TABLE IF NOT EXISTS persons (
   province_key text NOT NULL,
   person_id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -33,7 +32,6 @@ CREATE TABLE IF NOT EXISTS persons (
   PRIMARY KEY (province_key, person_id)
 ) PARTITION BY HASH (province_key);
 
--- 16 partition khởi đầu. Có thể tăng lên 32/64 khi benchmark hạ tầng thực tế.
 CREATE TABLE IF NOT EXISTS persons_p00 PARTITION OF persons FOR VALUES WITH (MODULUS 16, REMAINDER 0);
 CREATE TABLE IF NOT EXISTS persons_p01 PARTITION OF persons FOR VALUES WITH (MODULUS 16, REMAINDER 1);
 CREATE TABLE IF NOT EXISTS persons_p02 PARTITION OF persons FOR VALUES WITH (MODULUS 16, REMAINDER 2);
@@ -56,7 +54,6 @@ CREATE INDEX IF NOT EXISTS persons_scope_school_idx ON persons(province_key, com
 CREATE INDEX IF NOT EXISTS persons_household_idx ON persons(province_key, commune_code, household_key) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS persons_updated_idx ON persons(province_key, commune_code, updated_at, person_id) WHERE deleted_at IS NULL;
 
--- Gói tổng hợp cấp xã: vài nghìn bản ghi/năm thay vì hàng trăm triệu nhân khẩu.
 CREATE TABLE IF NOT EXISTS commune_summaries (
   survey_year integer NOT NULL CHECK (survey_year BETWEEN 2000 AND 2100),
   province_key text NOT NULL,
@@ -75,7 +72,26 @@ CREATE TABLE IF NOT EXISTS commune_summaries (
 );
 CREATE INDEX IF NOT EXISTS commune_summaries_year_province_idx ON commune_summaries(survey_year, province_key);
 
--- Nhật ký thao tác để truy vết thay đổi dữ liệu.
+-- 7 biểu GDMN tách khỏi dữ liệu nhân khẩu. Cấp xã ghi; tỉnh/toàn quốc chỉ đọc/tổng hợp.
+-- payload.aggregate chỉ chứa số liệu có thể cộng gộp; payload.details chứa chi tiết trường/cơ sở (không chứa danh sách trẻ).
+CREATE TABLE IF NOT EXISTS gdmn_forms (
+  survey_year integer NOT NULL CHECK (survey_year BETWEEN 2000 AND 2100),
+  province_key text NOT NULL,
+  province_name text NOT NULL,
+  commune_code text NOT NULL,
+  commune_name text NOT NULL,
+  form_code text NOT NULL CHECK (form_code IN ('MN-01-TE','MN-01-TCDK','MN-01-GV','MN-01-CSVC','MN-01-TC','MN-05-KT','MN-06-SO-PC')),
+  schema_version integer NOT NULL DEFAULT 1,
+  app_version text,
+  payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  generated_at timestamptz,
+  received_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (survey_year, province_key, commune_code, form_code)
+);
+CREATE INDEX IF NOT EXISTS gdmn_forms_year_province_form_idx ON gdmn_forms(survey_year, province_key, form_code);
+CREATE INDEX IF NOT EXISTS gdmn_forms_year_form_idx ON gdmn_forms(survey_year, form_code);
+
 CREATE TABLE IF NOT EXISTS audit_log (
   id bigserial PRIMARY KEY,
   occurred_at timestamptz NOT NULL DEFAULT now(),
@@ -91,7 +107,6 @@ CREATE TABLE IF NOT EXISTS audit_log (
 );
 CREATE INDEX IF NOT EXISTS audit_log_scope_time_idx ON audit_log(province_key, commune_code, occurred_at DESC);
 
--- View tổng hợp cấp tỉnh. Dashboard chỉ truy vấn view/materialized view này hoặc cache Redis.
 CREATE OR REPLACE VIEW province_summary AS
 SELECT
   survey_year,
