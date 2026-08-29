@@ -13,6 +13,7 @@ const DATABASE_URL=process.env.DATABASE_URL;
 if(!DATABASE_URL)throw new Error('DATABASE_URL is required');
 const pool=new Pool({connectionString:DATABASE_URL,max:Number(process.env.DB_POOL_MAX||30),idleTimeoutMillis:30000,connectionTimeoutMillis:10000,ssl:process.env.DB_SSL==='false'?false:{rejectUnauthorized:false}});
 const corsOrigins=(process.env.CORS_ORIGINS||'https://trungtuyen.github.io').split(',').map(x=>x.trim()).filter(Boolean);
+const GDMN_FORMS=new Set(['MN-01-TE','MN-01-TCDK','MN-01-GV','MN-01-CSVC','MN-01-TC','MN-05-KT','MN-06-SO-PC']);
 
 await app.register(cors,{origin:corsOrigins,credentials:false});
 await app.register(compress,{global:true,encodings:['br','gzip','deflate']});
@@ -48,6 +49,7 @@ function ensureCommuneDataScope(req,reply,province,commune=''){
 }
 function clampInt(v,min,max,def){const n=Number(v);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.trunc(n))):def}
 function metricObj(v){return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}
+function deepSum(a,b){const out={...metricObj(a)};for(const [k,v] of Object.entries(metricObj(b))){if(typeof v==='number'&&Number.isFinite(v))out[k]=(Number(out[k])||0)+v;else if(v&&typeof v==='object'&&!Array.isArray(v))out[k]=deepSum(metricObj(out[k]),v)}return out}
 function sumMetrics(rows){
   const out={total:0,households:0,villages:0,aged1518:0,tn1518:0,age1560:0,mc1560:0,disabilities:0,issues:0,errorIssues:0,warningIssues:0,schoolErrors:0,ageBands:{}};
   for(const row of rows){const m=metricObj(row.metrics);for(const k of ['total','households','villages','aged1518','tn1518','age1560','mc1560','disabilities','issues','errorIssues','warningIssues','schoolErrors'])out[k]+=Number(m[k])||0;for(const [k,v] of Object.entries(metricObj(m.ageBands)))out.ageBands[k]=(out.ageBands[k]||0)+(Number(v)||0)}
@@ -58,7 +60,7 @@ function sumMetrics(rows){
 function encodeCursor(row){return Buffer.from(JSON.stringify([row.updated_at,row.person_id])).toString('base64url')}
 function decodeCursor(v){try{const [ts,id]=JSON.parse(Buffer.from(String(v||''),'base64url').toString('utf8'));return {ts,id}}catch(_){return null}}
 
-app.get('/v1/health',async()=>({ok:true,service:'pcgdxmc-api',version:'1.1.0',time:new Date().toISOString()}));
+app.get('/v1/health',async()=>({ok:true,service:'pcgdxmc-api',version:'1.2.0',time:new Date().toISOString()}));
 await registerAuthRoutes(app,pool);
 
 app.post('/v1/summaries/upsert',async(req,reply)=>{
@@ -92,6 +94,47 @@ app.get('/v1/aggregates',async(req,reply)=>{
   return {source:'server',year,level,rows,metrics:sumMetrics(rows)};
 });
 
+app.post('/v1/gdmn/forms/upsert',async(req,reply)=>{
+  const b=req.body||{},year=clampInt(b.year,2000,2100,0),province=String(b.provinceKey||''),name=String(b.communeName||'').trim(),forms=metricObj(b.forms);
+  const commune=String(b.communeCode||'').trim()||slug(name);
+  if(!year||!province||!commune||!name)return reply.code(400).send({error:'missing_scope_fields'});
+  if(!ensureCommuneDataScope(req,reply,province,commune))return;
+  const entries=Object.entries(forms).filter(([code,payload])=>GDMN_FORMS.has(code)&&payload&&typeof payload==='object'&&!Array.isArray(payload));
+  if(!entries.length)return reply.code(400).send({error:'no_valid_gdmn_forms'});
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    for(const [code,payload] of entries){
+      await client.query(`INSERT INTO gdmn_forms(survey_year,province_key,province_name,commune_code,commune_name,form_code,schema_version,app_version,payload,generated_at,updated_at)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,now())
+        ON CONFLICT(survey_year,province_key,commune_code,form_code) DO UPDATE SET province_name=EXCLUDED.province_name,commune_name=EXCLUDED.commune_name,schema_version=EXCLUDED.schema_version,app_version=EXCLUDED.app_version,payload=EXCLUDED.payload,generated_at=EXCLUDED.generated_at,updated_at=now()`,
+        [year,province,String(b.provinceName||province),commune,name,code,clampInt(b.schemaVersion,1,99,1),String(b.appVersion||''),JSON.stringify(payload),b.generatedAt?new Date(b.generatedAt):null]);
+    }
+    await client.query(`INSERT INTO audit_log(actor_id,actor_role,province_key,commune_code,action,entity_type,entity_id,request_id,details) VALUES($1,$2,$3,$4,'UPSERT','gdmn_forms',$5,$6,$7::jsonb)`,[req.user?.sub||'',role(req),province,commune,`${year}|${province}|${commune}`,req.id,JSON.stringify({forms:entries.map(x=>x[0])})]);
+    await client.query('COMMIT');return {ok:true,forms:entries.length,communeCode:commune,updatedAt:new Date().toISOString()};
+  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+});
+
+app.get('/v1/gdmn/forms',async(req,reply)=>{
+  const q=req.query||{},level=['commune','province','national'].includes(q.level)?q.level:'commune',year=clampInt(q.year,2000,2100,new Date().getFullYear()),form=String(q.form||'');
+  if(!GDMN_FORMS.has(form))return reply.code(400).send({error:'invalid_gdmn_form'});
+  let province=String(q.province||''),commune=String(q.commune||'');const r=role(req);
+  if(r==='province_admin')province=userProvince(req);
+  if(r==='commune_admin'){province=userProvince(req);commune=userCommune(req)}
+  if(level!=='national'&&!province)return reply.code(400).send({error:'province_required'});
+  if(level==='national'&&r!=='super_admin'&&r!=='national_admin')return reply.code(403).send({error:'forbidden_scope'});
+  if(level==='province'&&r&&r!=='super_admin'&&r!=='national_admin'&&province!==userProvince(req))return reply.code(403).send({error:'forbidden_scope'});
+  if(level==='commune'&&r&&r!=='super_admin'&&r!=='national_admin'&&!ensureScope(req,reply,province,commune||userCommune(req)))return;
+  if(level==='national'){
+    const {rows}=await pool.query(`SELECT province_key AS "provinceKey",max(province_name) AS "provinceName",commune_code AS "communeCode",payload->'aggregate' AS aggregate FROM gdmn_forms WHERE survey_year=$1 AND form_code=$2 ORDER BY province_key,commune_code`,[year,form]);
+    const map=new Map();for(const x of rows){const k=x.provinceKey,v=map.get(k)||{provinceKey:k,provinceName:x.provinceName,communes:new Set(),aggregate:{}};v.communes.add(x.communeCode);v.aggregate=deepSum(v.aggregate,x.aggregate);map.set(k,v)}
+    return {source:'server',year,level,form,rows:[...map.values()].map(x=>({provinceKey:x.provinceKey,provinceName:x.provinceName,communes:x.communes.size,aggregate:x.aggregate})).sort((a,b)=>String(a.provinceName).localeCompare(String(b.provinceName),'vi'))};
+  }
+  const params=[year,form,province],where=['survey_year=$1','form_code=$2','province_key=$3'];if(level==='commune'){const c=commune||userCommune(req);if(c){params.push(c);where.push(`commune_code=$${params.length}`)}}
+  const {rows}=await pool.query(`SELECT province_key AS "provinceKey",province_name AS "provinceName",commune_code AS "communeCode",commune_name AS "communeName",payload,payload->'aggregate' AS aggregate,updated_at AS "updatedAt" FROM gdmn_forms WHERE ${where.join(' AND ')} ORDER BY commune_name`,params);
+  return {source:'server',year,level,form,rows};
+});
+
 app.get('/v1/persons',async(req,reply)=>{
   const q=req.query||{},province=String(q.province||userProvince(req)||''),commune=String(q.commune||userCommune(req)||''),limit=clampInt(q.limit,1,100,50),cursor=decodeCursor(q.cursor);
   if(!province||!commune)return reply.code(400).send({error:'province_and_commune_required'});
@@ -114,6 +157,6 @@ app.post('/v1/persons/batch',async(req,reply)=>{
     [province,id,commune,x.schoolId||null,x.householdKey||null,String(x.fullName||''),x.birthDate||null,x.sex??null,JSON.stringify(metricObj(x.payload))]);upserted++}await client.query('COMMIT');return {ok:true,upserted}}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
 });
 
-app.setErrorHandler((err,req,reply)=>{req.log.error({err},'request failed');if(err.code==='23505')return reply.code(409).send({error:'conflict'});return reply.code(500).send({error:'internal_error',requestId:req.id})});
+app.setErrorHandler((err,req,reply)=>{req.log.error({err},'request failed');if(err.code==='23505')return reply.code(409).send({error:'conflict'});if(err.code==='42P01')return reply.code(503).send({error:'database_schema_not_migrated',requestId:req.id});return reply.code(500).send({error:'internal_error',requestId:req.id})});
 app.addHook('onClose',async()=>{await pool.end()});
 await app.listen({port:PORT,host:'0.0.0.0'});
