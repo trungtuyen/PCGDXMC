@@ -12,6 +12,7 @@ on:
       - 'sw.js'
       - 'index.html'
       - 'backend/**'
+      - 'render.yaml'
       - '.github/workflows/nationwide-check.yml'
   workflow_dispatch:
 
@@ -41,6 +42,8 @@ jobs:
       - name: Check backend JavaScript
         working-directory: backend
         run: npm run check
+      - name: Build production Docker image
+        run: docker build -t pcgdxmc-api-ci ./backend
       - name: Verify modules are reachable and cached
         run: |
           grep -q 'nationwide-v13.js' index.html
