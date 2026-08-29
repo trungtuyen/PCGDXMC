@@ -2,6 +2,14 @@
 
 Ứng dụng web hỗ trợ **Phổ cập giáo dục – Xóa mù chữ (PCGD–XMC)** theo hướng local-first, được xây dựng để đối chiếu và dần thay thế quy trình tính bằng workbook Excel PCGD cấp xã.
 
+## 🚀 Chạy phần mềm ngay
+
+**Link chạy trực tiếp:**
+
+https://raw.githack.com/trungtuyen/PCGDXMC/main/index.html
+
+> Link trên phục vụ trực tiếp mã nguồn public từ repository GitHub. Dữ liệu Excel người dùng chọn vẫn được xử lý trong trình duyệt và không được commit vào repository.
+
 ## Bản Beta 0.1 có gì?
 
 - Đọc file Excel ngay trên trình duyệt; **không tải dữ liệu cá nhân lên GitHub**.
@@ -19,9 +27,11 @@ Repository **không chứa** file điều tra gốc hay dữ liệu họ tên/ng
 
 > Không commit file dữ liệu PCGD thực tế vào repository public.
 
-## Chạy thử
+## GitHub Pages
 
-Mở `index.html` qua web server tĩnh. Khi GitHub Pages được bật, địa chỉ dự kiến:
+Workflow triển khai GitHub Pages đã có sẵn. GitHub hiện không cho phép workflow tự tạo Pages site lần đầu bằng `GITHUB_TOKEN`, nên link GitHub Pages chính thức chỉ hoạt động sau khi Pages được bật một lần trong phần cài đặt repository.
+
+Địa chỉ GitHub Pages dự kiến sau khi bật:
 
 `https://trungtuyen.github.io/PCGDXMC/`
 
