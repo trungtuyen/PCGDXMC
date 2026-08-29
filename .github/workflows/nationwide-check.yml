@@ -1,0 +1,35 @@
+name: Check nationwide PCGD-XMC
+
+on:
+  pull_request:
+    paths:
+      - 'nationwide-v13.js'
+      - 'backend/**'
+      - '.github/workflows/nationwide-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check frontend JavaScript
+        run: node --check nationwide-v13.js
+      - name: Check backend JavaScript
+        run: node --check backend/server.js
+      - name: Verify 34 province entries
+        run: |
+          python - <<'PY'
+          import re
+          text=open('nationwide-v13.js',encoding='utf-8').read()
+          block=text.split('const PROVINCES=[',1)[1].split('].map',1)[0]
+          count=len(re.findall(r"\['[^']+','[^']+'\]",block))
+          assert count==34, f'Expected 34 provinces, found {count}'
+          print('Province entries:',count)
+          PY
