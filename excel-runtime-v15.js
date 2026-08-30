@@ -18,7 +18,18 @@
     return new URL(src, document.baseURI).href;
   }
 
-  function loadScript(src) {
+  function warmConnection() {
+    const origin = new URL(SHEETJS_URL).origin;
+    if (document.querySelector(`link[data-pcgd-preconnect="${origin}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = origin;
+    link.crossOrigin = 'anonymous';
+    link.dataset.pcgdPreconnect = origin;
+    document.head.appendChild(link);
+  }
+
+  function loadScript(src, ordered = false) {
     const url = absoluteUrl(src);
     const existing = Array.from(document.scripts).find((script) => script.src === url);
 
@@ -33,7 +44,7 @@
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = url;
-      script.async = true;
+      script.async = !ordered;
       script.dataset.pcgdRuntime = '1';
       script.onload = () => {
         script.dataset.pcgdLoaded = '1';
@@ -49,8 +60,12 @@
 
   async function start() {
     global.dispatchEvent(new CustomEvent('pcgd-excel-loading'));
+    warmConnection();
     if (!global.XLSX) await loadScript(SHEETJS_URL);
-    for (const modulePath of MODULES) await loadScript(modulePath);
+
+    // Dynamic scripts with async=false are fetched in parallel but execute in insertion order.
+    // This removes the previous seven-request waterfall while preserving module dependencies.
+    await Promise.all(MODULES.map((modulePath) => loadScript(modulePath, true)));
 
     if (!global.XLSX || !global.PCGDEngine || !global.PCGDViewer) {
       throw new Error('Bộ xử lý Excel chưa khởi tạo đầy đủ.');
@@ -74,4 +89,3 @@
     isReady: () => Boolean(global.XLSX && global.PCGDEngine && global.PCGDViewer)
   };
 })(window);
-
