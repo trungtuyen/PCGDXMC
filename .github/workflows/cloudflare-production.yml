@@ -1,0 +1,93 @@
+name: Deploy PCGD-XMC API to Cloudflare
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/cloudflare/**'
+      - '.github/workflows/cloudflare-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pcgdxmc-cloudflare-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/cloudflare
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Verify Cloudflare credentials are configured
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing GitHub secret CLOUDFLARE_API_TOKEN'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing GitHub secret CLOUDFLARE_ACCOUNT_ID'; exit 1; }
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Generate Worker types
+        run: npm run types
+
+      - name: TypeScript check
+        run: npm run check
+
+      - name: Dry-run build
+        run: npm run build
+
+      - name: Deploy production Worker
+        run: npx wrangler deploy
+
+      - name: Verify deployed three-level gateway
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
+          body=''
+          for i in {1..30}; do
+            body="$(curl -fsS "$url" || true)"
+            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+              echo "$body"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Production Worker did not report the three-level gateway. Last response: $body"
+          exit 1
+
+      - name: Verify protected endpoint rejects anonymous access
+        working-directory: .
+        shell: bash
+        run: |
+          code="$(curl -sS -o /tmp/protected.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
+          cat /tmp/protected.json
+          test "$code" = '401'
+
+      - name: Verify production CORS preflight
+        working-directory: .
+        shell: bash
+        run: |
+          curl -fsSI -X OPTIONS \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,authorization' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login' \
+            | tr -d '\r' \
+            | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
