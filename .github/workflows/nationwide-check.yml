@@ -12,6 +12,8 @@ on:
       - 'three-level-ui-v16.js'
       - 'three-level-ui-v17.js'
       - 'local-mode-v18.js'
+      - 'th-manual-input-v20.js'
+      - 'survey-tab-layout-v21.js'
       - 'excel-runtime-v15.js'
       - 'xmc-menu-v11.js'
       - 'sw.js'
@@ -43,6 +45,8 @@ jobs:
           node --check three-level-ui-v16.js
           node --check three-level-ui-v17.js
           node --check local-mode-v18.js
+          node --check th-manual-input-v20.js
+          node --check survey-tab-layout-v21.js
           node --check excel-runtime-v15.js
           node --check xmc-menu-v11.js
           node --check sw.js
@@ -76,9 +80,15 @@ jobs:
           grep -q 'aggregate-export-v14.js' xmc-menu-v11.js
           grep -q 'three-level-ui-v16.js' xmc-menu-v11.js
           grep -q 'local-mode-v18.js' three-level-ui-v16.js
+          grep -q 'th-manual-input-v20.js' three-level-ui-v16.js
+          grep -q 'survey-tab-layout-v21.js' three-level-ui-v16.js
           grep -q 'Dùng cục bộ cấp xã' local-mode-v18.js
           grep -q '__pcgdLocalFetchPatched' local-mode-v18.js
           grep -q 'pcgdxmc-api.pcgdxmc-api.workers.dev' local-mode-v18.js
+          grep -q 'data-tab="data"' survey-tab-layout-v21.js
+          grep -q "page.id==='data'" survey-tab-layout-v21.js
+          grep -q 'import-panel' survey-tab-layout-v21.js
+          grep -q 'scopebar' survey-tab-layout-v21.js
           grep -q 'auth-v14.js' sw.js
           grep -q 'auth-v15.js' sw.js
           grep -q 'aggregate-export-v14.js' sw.js
@@ -86,6 +96,8 @@ jobs:
           grep -q 'three-level-ui-v16.js' sw.js
           grep -q 'three-level-ui-v17.js' sw.js
           grep -q 'local-mode-v18.js' sw.js
+          grep -q 'th-manual-input-v20.js' sw.js
+          grep -q 'survey-tab-layout-v21.js' sw.js
           grep -q 'core-v02.js' sw.js
           grep -q 'reports-v02.js' sw.js
           grep -q 'groups-v03.js' sw.js
