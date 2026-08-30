@@ -33,11 +33,22 @@ function filteredListResponse(source:Response,users:UserListItem[],actor:AppUser
   return new Response(JSON.stringify({users:visible}),{status:source.status,headers});
 }
 
+async function healthResponse(request:Request,env:Env,ctx:ExecutionContext){
+  const source=await callBase(request,env,ctx);
+  if(!source.ok)return source;
+  let body:Record<string,unknown>={};
+  try{body=await source.clone().json() as Record<string,unknown>}catch{}
+  const headers=new Headers(source.headers);headers.set('Content-Type','application/json; charset=utf-8');headers.set('Cache-Control','no-store');
+  return new Response(JSON.stringify({...body,gatewayVersion:'1.3.0',authModel:'three-level-hierarchy-v1'}),{status:source.status,headers});
+}
+
 export default {
   async fetch(request:Request,env:Env,ctx:ExecutionContext):Promise<Response>{
     const url=new URL(request.url),path=url.pathname;
     const isAdminUsers=path==='/v1/admin/users';
     const patchMatch=path.match(/^\/v1\/admin\/users\/([0-9a-f-]+)$/i);
+
+    if(request.method==='GET'&&path==='/v1/health')return healthResponse(request,env,ctx);
 
     if(request.method==='GET'&&isAdminUsers){
       const me=await verifiedMe(request,env,ctx);if(!me.user)return me.response;
