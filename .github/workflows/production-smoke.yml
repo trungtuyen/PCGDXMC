@@ -8,6 +8,7 @@ on:
       - 'auth-v15.js'
       - 'three-level-ui-v16.js'
       - 'three-level-ui-v17.js'
+      - 'local-mode-v18.js'
       - 'admin-users-v15.js'
       - 'nationwide-v13.js'
       - 'gdmn-high-level-v14.js'
@@ -24,7 +25,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify GitHub Pages includes mobile three-level UI
+      - name: Verify GitHub Pages includes mobile three-level UI and local mode
         shell: bash
         run: |
           set -euo pipefail
@@ -36,10 +37,14 @@ jobs:
             curl -fsSL "${base}auth-v15.js?v=${GITHUB_SHA}" -o /tmp/auth-mobile.js || true
             curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" -o /tmp/three-level-loader.js || true
             curl -fsSL "${base}three-level-ui-v17.js?v=${GITHUB_SHA}" -o /tmp/three-level-mobile.js || true
+            curl -fsSL "${base}local-mode-v18.js?v=${GITHUB_SHA}" -o /tmp/local-mode.js || true
             if grep -q 'auth-v14.js' /tmp/index.html 2>/dev/null \
               && grep -q 'three-level-ui-v16.js' /tmp/index.html 2>/dev/null \
               && grep -q 'auth-v15.js' /tmp/auth-loader.js 2>/dev/null \
               && grep -q 'three-level-ui-v17.js' /tmp/three-level-loader.js 2>/dev/null \
+              && grep -q 'local-mode-v18.js' /tmp/three-level-loader.js 2>/dev/null \
+              && grep -q 'Dùng cục bộ cấp xã' /tmp/local-mode.js 2>/dev/null \
+              && grep -q '__pcgdLocalFetchPatched' /tmp/local-mode.js 2>/dev/null \
               && grep -q '4G' /tmp/auth-mobile.js 2>/dev/null \
               && grep -q 'Cấp Bộ' /tmp/three-level-mobile.js 2>/dev/null; then
               ok='true'
@@ -115,7 +120,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -q "https://pcgdxmc-api.pcgdxmc-api.workers.dev" /tmp/auth-mobile.js
-          if grep -q "http://pcgdxmc-api" /tmp/auth-mobile.js; then
+          grep -q "https://pcgdxmc-api.pcgdxmc-api.workers.dev" /tmp/local-mode.js
+          if grep -q "http://pcgdxmc-api" /tmp/auth-mobile.js /tmp/local-mode.js; then
             echo 'Insecure production API URL detected.'
             exit 1
           fi
