@@ -46,6 +46,15 @@ jobs:
         run: npm run check
       - name: Build production Docker image
         run: docker build -t pcgdxmc-api-ci ./backend
+      - name: Install Cloudflare Worker dependencies
+        working-directory: backend/cloudflare
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check Cloudflare Worker TypeScript
+        working-directory: backend/cloudflare
+        run: npm run check
+      - name: Dry-run Cloudflare Worker build
+        working-directory: backend/cloudflare
+        run: npm run build
       - name: Verify modules are reachable and cached
         run: |
           grep -q 'nationwide-v13.js' index.html
@@ -58,6 +67,7 @@ jobs:
           grep -q 'aggregate-export-v14.js' sw.js
           grep -q 'admin-users-v15.js' sw.js
           grep -q 'three-level-ui-v16.js' sw.js
+          grep -q '"main": "src/entry.ts"' backend/cloudflare/wrangler.jsonc
       - name: Verify 34 province entries
         run: |
           python - <<'PY'
