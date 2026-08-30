@@ -4,6 +4,7 @@
   const SHEETJS_URL = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
   const MODULES = [
     './core-v02.js',
+    './rounding-v22.js',
     './reports-v02.js',
     './groups-v03.js',
     './viewer-v04.js',
@@ -64,7 +65,7 @@
     if (!global.XLSX) await loadScript(SHEETJS_URL);
 
     // Dynamic scripts with async=false are fetched in parallel but execute in insertion order.
-    // This removes the previous seven-request waterfall while preserving module dependencies.
+    // This removes the previous request waterfall while preserving module dependencies.
     await Promise.all(MODULES.map((modulePath) => loadScript(modulePath, true)));
 
     if (!global.XLSX || !global.PCGDEngine || !global.PCGDViewer) {
