@@ -1,6 +1,75 @@
-const CACHE='pcgdxmc-v1.9.0';
-const CORE=['./','./index.html','./styles.css','./excel-runtime-v15.js','./app.js','./nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js','./admin-users-v15.js','./three-level-ui-v16.js','./manifest.webmanifest'];
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
-self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const url=new URL(e.request.url);if(url.origin!==self.location.origin)return;e.respondWith(fetch(e.request).then(res=>{const copy=res.clone();if(res.ok)caches.open(CACHE).then(c=>c.put(e.request,copy));return res}).catch(()=>caches.match(e.request).then(r=>r||(e.request.mode==='navigate'?caches.match('./index.html'):Response.error()))))});
+const CACHE='pcgdxmc-v1.10.0';
+const CORE=[
+  './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
+  './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js',
+  './admin-users-v15.js','./three-level-ui-v16.js','./aggregate-export-v14.js',
+  './manifest.webmanifest','./core-v02.js','./reports-v02.js','./groups-v03.js',
+  './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
+];
+const STATIC_ASSET=/\.(?:css|js|json|webmanifest|png|jpg|jpeg|gif|svg|ico|woff2?)$/i;
 
+self.addEventListener('install',event=>{
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)));
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil((async()=>{
+    if(self.registration.navigationPreload){
+      try{await self.registration.navigationPreload.enable()}catch(_){}
+    }
+    const keys=await caches.keys();
+    await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
+    await self.clients.claim();
+  })());
+});
+
+async function cacheResponse(request,response){
+  if(response&&response.ok){
+    const cache=await caches.open(CACHE);
+    await cache.put(request,response.clone());
+  }
+  return response;
+}
+
+async function navigationResponse(event){
+  try{
+    const preload=await event.preloadResponse;
+    if(preload)return cacheResponse(event.request,preload);
+    const response=await fetch(event.request);
+    return cacheResponse(event.request,response);
+  }catch(_){
+    return (await caches.match(event.request))||(await caches.match('./index.html'))||Response.error();
+  }
+}
+
+async function staleWhileRevalidate(event){
+  const cached=await caches.match(event.request);
+  const refresh=fetch(event.request)
+    .then(response=>cacheResponse(event.request,response))
+    .catch(()=>null);
+  if(cached){
+    event.waitUntil(refresh);
+    return cached;
+  }
+  const fresh=await refresh;
+  return fresh||Response.error();
+}
+
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  const url=new URL(event.request.url);
+  if(url.origin!==self.location.origin)return;
+
+  if(event.request.mode==='navigate'){
+    event.respondWith(navigationResponse(event));
+    return;
+  }
+
+  if(STATIC_ASSET.test(url.pathname)){
+    event.respondWith(staleWhileRevalidate(event));
+    return;
+  }
+
+  event.respondWith(fetch(event.request).catch(()=>caches.match(event.request)));
+});
