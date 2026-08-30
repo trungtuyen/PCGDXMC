@@ -4,9 +4,9 @@ type Role='super_admin'|'national_admin'|'province_admin'|'commune_admin';
 type AppUser={id:string;role:Role;provinceKey?:string;communeCode?:string};
 type UserListItem={id:string;role:Role;provinceKey?:string;communeCode?:string};
 
-function isMinistry(role:string){return role==='super_admin'||role==='national_admin'}
 function canManage(actor:AppUser,target:{role:string;provinceKey?:string}){
-  if(isMinistry(actor.role))return target.role==='province_admin';
+  if(actor.role==='super_admin')return target.role==='province_admin'||target.role==='commune_admin';
+  if(actor.role==='national_admin')return target.role==='province_admin';
   return actor.role==='province_admin'&&target.role==='commune_admin'&&target.provinceKey===actor.provinceKey;
 }
 
@@ -28,7 +28,10 @@ async function rawUserList(request:Request,env:Env,ctx:ExecutionContext){
 }
 
 function filteredListResponse(source:Response,users:UserListItem[],actor:AppUser){
-  const visible=isMinistry(actor.role)?users.filter(u=>u.role==='province_admin'):users.filter(u=>u.role==='commune_admin'&&u.provinceKey===actor.provinceKey);
+  let visible:UserListItem[]=[];
+  if(actor.role==='super_admin')visible=users.filter(u=>u.role==='province_admin'||u.role==='commune_admin');
+  else if(actor.role==='national_admin')visible=users.filter(u=>u.role==='province_admin');
+  else if(actor.role==='province_admin')visible=users.filter(u=>u.role==='commune_admin'&&u.provinceKey===actor.provinceKey);
   const headers=new Headers(source.headers);headers.set('Content-Type','application/json; charset=utf-8');headers.set('Cache-Control','no-store');
   return new Response(JSON.stringify({users:visible}),{status:source.status,headers});
 }
@@ -39,7 +42,7 @@ async function healthResponse(request:Request,env:Env,ctx:ExecutionContext){
   let body:Record<string,unknown>={};
   try{body=await source.clone().json() as Record<string,unknown>}catch{}
   const headers=new Headers(source.headers);headers.set('Content-Type','application/json; charset=utf-8');headers.set('Cache-Control','no-store');
-  return new Response(JSON.stringify({...body,gatewayVersion:'1.3.0',authModel:'three-level-hierarchy-v1'}),{status:source.status,headers});
+  return new Response(JSON.stringify({...body,gatewayVersion:'1.4.0',authModel:'three-level-hierarchy-v1',mobileNetwork:'public-https'}),{status:source.status,headers});
 }
 
 export default {
