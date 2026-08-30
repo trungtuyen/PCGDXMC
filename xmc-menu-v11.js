@@ -12,6 +12,5 @@
 function loadPcgdxmcModule(src,dataKey){if(document.querySelector(`script[${dataKey}]`))return;const s=document.createElement('script');s.src=src;s.setAttribute(dataKey,'1');document.head.appendChild(s)}
 (function(){if(!window.PCGDExcelExport?.installed)loadPcgdxmcModule('./excel-export-v12.js','data-pcgd-excel-export')})();
 (function(){loadPcgdxmcModule('./education-menus-v13.js','data-pcgd-education-menus')})();
-(function(){loadPcgdxmcModule('./auth-v14.js','data-pcgd-auth')})();
 (function(){loadPcgdxmcModule('./aggregate-export-v14.js','data-pcgd-aggregate-export')})();
-(function(){loadPcgdxmcModule('./admin-users-v15.js','data-pcgd-admin-users')})();
+(function(){loadPcgdxmcModule('./three-level-ui-v16.js','data-pcgd-three-level-ui')})();
