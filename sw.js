@@ -1,8 +1,8 @@
-const CACHE='pcgdxmc-v1.13.0-local-v19';
+const CACHE='pcgdxmc-v1.14.0-local-v20';
 const CORE=[
   './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
   './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js','./auth-v15.js',
-  './admin-users-v15.js','./three-level-ui-v16.js','./three-level-ui-v17.js','./local-mode-v18.js','./aggregate-export-v14.js',
+  './admin-users-v15.js','./three-level-ui-v16.js','./three-level-ui-v17.js','./local-mode-v18.js','./th-manual-input-v20.js','./aggregate-export-v14.js',
   './manifest.webmanifest','./core-v02.js','./reports-v02.js','./groups-v03.js',
   './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
 ];
