@@ -1,0 +1,85 @@
+name: Diagnose PCGD-XMC production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check GitHub Pages and critical assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://trungtuyen.github.io/PCGDXMC/'
+          curl -fsSL "$base" -o /tmp/index.html
+          grep -q 'auth-v14.js' /tmp/index.html
+          grep -q 'three-level-ui-v16.js' /tmp/index.html
+          curl -fsSL "${base}auth-v14.js" -o /tmp/auth.js
+          curl -fsSL "${base}three-level-ui-v16.js" -o /tmp/three-level.js
+          echo 'pages=ok'
+
+      - name: Inspect Worker health
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
+          code="$(curl -sS -o /tmp/health.json -w '%{http_code}' "$url")"
+          echo "health_http=$code"
+          cat /tmp/health.json
+          test "$code" = '200'
+          grep -q '"ok":true' /tmp/health.json
+          grep -q '"runtime":"cloudflare-workers"' /tmp/health.json
+
+      - name: Verify CORS preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -D /tmp/cors.headers -o /dev/null -X OPTIONS \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,authorization' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login'
+          cat /tmp/cors.headers
+          tr -d '\r' < /tmp/cors.headers | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
+
+      - name: Verify database-backed login route responds safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/login.json -w '%{http_code}' \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"username":"__production_probe__","password":"invalid-password-123"}' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login')"
+          echo "login_probe_http=$code"
+          cat /tmp/login.json
+          # 400/401 means the route, Hyperdrive and app_users query path are alive.
+          test "$code" = '400' -o "$code" = '401'
+
+      - name: Verify anonymous admin access is blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/admin.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
+          echo "anonymous_admin_http=$code"
+          cat /tmp/admin.json
+          test "$code" = '401'
+
+      - name: Report gateway version
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(cat /tmp/health.json)"
+          if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+            echo 'gateway=three-level-hierarchy-v1'
+          else
+            echo '::warning::Worker is operational but the newest three-level gateway has not been deployed yet.'
+          fi
