@@ -85,6 +85,14 @@
     }
   }
 
+  function filterAdminRows(level){
+    document.querySelectorAll('#pauUsers tr').forEach(row=>{
+      const text=(row.children?.[2]?.textContent||'').trim();
+      if(!text){row.style.display='';return}
+      row.style.display=level==='ministry'?(text==='Quản trị tỉnh'?'':'none'):level==='province'?(text==='Quản trị xã'?'':'none'):'';
+    });
+  }
+
   function render(){
     const a=auth();if(!a)return;
     const u=user(),portal=$('pcgdLoginPortal'),bar=$('pcgdRoleBar');
@@ -97,14 +105,14 @@
     document.body.dataset.pcgdLevel=level;if(portal)portal.style.display='none';
     const meta=AUTH_LEVELS[level];
     if(bar){bar.style.display='block';bar.innerHTML=`<div class="tl-role-inner"><div class="tl-role-info"><strong>${esc(meta.title)}</strong><span>${esc(meta.desc)}</span></div><div class="tl-role-user"><div><b>${esc(u.displayName||u.username)}</b><small>${esc(meta.label)} · ${esc(u.username)}</small></div><button id="pcgdRoleLogout" class="secondary" type="button">Đăng xuất</button></div></div>`;$('pcgdRoleLogout').onclick=()=>a.logout()}
-    setTimeout(()=>{lockAdminHierarchy(u,level);global.PCGDNational?.renderAggregate?.()},80);
+    setTimeout(()=>{lockAdminHierarchy(u,level);filterAdminRows(level);global.PCGDNational?.renderAggregate?.()},80);
   }
 
   function init(){
     ensureStyle();ensurePortal();ensureRoleBar();
     if(!auth()){setTimeout(init,80);return}
     global.addEventListener('pcgd-auth-changed',()=>setTimeout(render,0));
-    const mo=new MutationObserver(()=>{const u=user();if(u){const level=levelOf(u);lockAdminHierarchy(u,level)}});mo.observe(document.body,{childList:true,subtree:true});
+    const mo=new MutationObserver(()=>{const u=user();if(u){const level=levelOf(u);lockAdminHierarchy(u,level);filterAdminRows(level)}});mo.observe(document.body,{childList:true,subtree:true});
     render();
   }
 
