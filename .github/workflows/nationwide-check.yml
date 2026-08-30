@@ -9,6 +9,7 @@ on:
       - 'aggregate-export-v14.js'
       - 'admin-users-v15.js'
       - 'three-level-ui-v16.js'
+      - 'excel-runtime-v15.js'
       - 'xmc-menu-v11.js'
       - 'sw.js'
       - 'index.html'
@@ -36,6 +37,7 @@ jobs:
           node --check aggregate-export-v14.js
           node --check admin-users-v15.js
           node --check three-level-ui-v16.js
+          node --check excel-runtime-v15.js
           node --check xmc-menu-v11.js
           node --check sw.js
       - name: Install backend dependencies
@@ -60,6 +62,7 @@ jobs:
         run: npm run build
       - name: Verify modules are reachable and cached
         run: |
+          grep -q 'excel-runtime-v15.js' index.html
           grep -q 'nationwide-v13.js' index.html
           grep -q 'gdmn-high-level-v14.js' index.html
           grep -q 'auth-v14.js' index.html
@@ -70,6 +73,13 @@ jobs:
           grep -q 'aggregate-export-v14.js' sw.js
           grep -q 'admin-users-v15.js' sw.js
           grep -q 'three-level-ui-v16.js' sw.js
+          grep -q 'core-v02.js' sw.js
+          grep -q 'reports-v02.js' sw.js
+          grep -q 'groups-v03.js' sw.js
+          grep -q 'viewer-v04.js' sw.js
+          grep -q 'xmc-lists-v09.js' sw.js
+          grep -q 'xmc-age-summary-v10.js' sw.js
+          grep -q 'xmc-menu-v11.js' sw.js
           grep -q '"main": "src/entry.ts"' backend/cloudflare/wrangler.jsonc
       - name: Verify 34 province entries
         run: |
