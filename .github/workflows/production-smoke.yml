@@ -1,0 +1,72 @@
+name: Verify PCGD-XMC production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'auth-v14.js'
+      - 'three-level-ui-v16.js'
+      - 'xmc-menu-v11.js'
+      - 'sw.js'
+      - 'index.html'
+      - 'backend/cloudflare/**'
+      - '.github/workflows/production-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify GitHub Pages includes three-level UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://trungtuyen.github.io/PCGDXMC/'
+          html=''
+          for i in {1..30}; do
+            html="$(curl -fsSL "${base}?v=${GITHUB_SHA}" || true)"
+            if echo "$html" | grep -q 'auth-v14.js'; then
+              break
+            fi
+            sleep 2
+          done
+          echo "$html" | grep -q 'auth-v14.js'
+          curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" | grep -q 'three-level-hierarchy\|Cấp Bộ'
+
+      - name: Verify Cloudflare Worker is reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
+          body="$(curl -fsS "$url")"
+          echo "$body"
+          echo "$body" | grep -q '"ok":true'
+          echo "$body" | grep -q '"runtime":"cloudflare-workers"'
+
+      - name: Verify newest three-level gateway is live
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
+          body=''
+          for i in {1..30}; do
+            body="$(curl -fsS "$url" || true)"
+            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+              echo "$body"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Worker is reachable but the newest three-level gateway is not live yet."
+          echo "$body"
+          exit 1
+
+      - name: Verify anonymous admin access is blocked
+        shell: bash
+        run: |
+          code="$(curl -sS -o /tmp/admin.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
+          cat /tmp/admin.json
+          test "$code" = '401'
