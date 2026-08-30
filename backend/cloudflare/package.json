@@ -1,0 +1,20 @@
+{
+  "name": "pcgdxmc-cloudflare-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "types": "wrangler types worker-configuration.d.ts"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "typescript": "^5.9.2",
+    "wrangler": "latest"
+  }
+}
+

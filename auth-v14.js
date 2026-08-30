@@ -1,5 +1,6 @@
 (function(global){
   'use strict';
+  const DEFAULT_API_BASE='https://pcgdxmc-api.pcgdxmc-api.workers.dev';
   const API_KEY='pcgdxmc_api_base',TOKEN_KEY='pcgdxmc_api_token',USER_KEY='pcgdxmc_session_user',SCOPE_KEY='pcgdxmc_management_scope';
   const nativeGet=Storage.prototype.getItem,nativeSet=Storage.prototype.setItem,nativeRemove=Storage.prototype.removeItem;
   Storage.prototype.getItem=function(k){if(this===localStorage&&k===TOKEN_KEY)return nativeGet.call(sessionStorage,k)||'';return nativeGet.call(this,k)};
@@ -7,7 +8,7 @@
   Storage.prototype.removeItem=function(k){if(this===localStorage&&k===TOKEN_KEY){nativeRemove.call(sessionStorage,k);return}return nativeRemove.call(this,k)};
 
   const $=id=>document.getElementById(id),clean=v=>String(v||'').trim();
-  function apiBase(){return clean(nativeGet.call(localStorage,API_KEY)||'').replace(/\/$/,'')}
+  function apiBase(){return clean(nativeGet.call(localStorage,API_KEY)||DEFAULT_API_BASE).replace(/\/$/,'')}
   function token(){return clean(nativeGet.call(sessionStorage,TOKEN_KEY)||'')}
   function user(){try{return JSON.parse(nativeGet.call(sessionStorage,USER_KEY)||'null')}catch(_){return null}}
   function saveSession(t,u){nativeSet.call(sessionStorage,TOKEN_KEY,t);nativeSet.call(sessionStorage,USER_KEY,JSON.stringify(u||{}))}
@@ -26,3 +27,4 @@
   async function init(){await restore();inject();notify()}
   global.PCGDAuth={login,logout,user,token,apiBase,request:json};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>init().catch(console.error));else init().catch(console.error);
 })(window);
+

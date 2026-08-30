@@ -6,6 +6,7 @@
   const DB_VERSION=1;
   const STORE_SUMMARIES='summaries';
   const STORE_QUEUE='queue';
+  const DEFAULT_API_BASE='https://pcgdxmc-api.pcgdxmc-api.workers.dev';
   const API_KEY='pcgdxmc_api_base';
   const TOKEN_KEY='pcgdxmc_api_token';
   const SCOPE_KEY='pcgdxmc_management_scope';
@@ -36,7 +37,7 @@
     catch(_){return {level:'commune',provinceKey:'thai-nguyen',communeCode:'',communeName:''}}
   }
   function saveScope(s){localStorage.setItem(SCOPE_KEY,JSON.stringify(s));}
-  function apiBase(){return clean(localStorage.getItem(API_KEY)||'').replace(/\/$/,'');}
+  function apiBase(){return clean(localStorage.getItem(API_KEY)||DEFAULT_API_BASE).replace(/\/$/,'');}
   function apiToken(){return clean(localStorage.getItem(TOKEN_KEY)||'');}
   function year(){return Number($('yearInput')?.value)||new Date().getFullYear();}
   function provinceName(key){return PROVINCES.find(p=>p.key===key)?.name||key||'';}
@@ -251,7 +252,7 @@
       </div>
       <div class="nat-actions"><button id="syncCommuneBtn" class="primary" type="button">Đồng bộ số liệu xã</button><button id="refreshAggregateBtn" class="secondary" type="button">Làm mới tổng hợp</button><button id="exportSummaryBundleBtn" class="secondary" type="button">Xuất gói tổng hợp</button><button id="importSummaryBundleBtn" class="secondary" type="button">Nhập gói tổng hợp</button><input id="importSummaryBundleFile" type="file" accept=".json" hidden></div>
       <div id="nationalSyncStatus" class="nat-status" data-kind="info">Chế độ an toàn 4G: chỉ đồng bộ gói tổng hợp nhỏ; dữ liệu đang nhập vẫn được xử lý cục bộ.</div>
-      <details class="nat-config"><summary>Cấu hình máy chủ API (dành cho triển khai nhiều tỉnh)</summary><div class="nat-config-grid"><div class="nat-field"><label>API URL</label><input id="apiBaseInput" placeholder="https://api.pcgdxmc.vn"></div><div class="nat-field"><label>Access token phiên đăng nhập</label><input id="apiTokenInput" type="password" autocomplete="off" placeholder="Không lưu mật khẩu quản trị"></div><button id="saveApiBtn" class="secondary" type="button">Lưu API</button><button id="testApiBtn" class="secondary" type="button">Kiểm tra</button></div></details>`;
+      <details class="nat-config"><summary>Cấu hình máy chủ API (dành cho triển khai nhiều tỉnh)</summary><div class="nat-config-grid"><div class="nat-field"><label>API URL</label><input id="apiBaseInput" placeholder="${DEFAULT_API_BASE}"></div><div class="nat-field"><label>Access token phiên đăng nhập</label><input id="apiTokenInput" type="password" autocomplete="off" placeholder="Không lưu mật khẩu quản trị"></div><button id="saveApiBtn" class="secondary" type="button">Lưu API</button><button id="testApiBtn" class="secondary" type="button">Kiểm tra</button></div></details>`;
     anchor.parentNode.insertBefore(panel,anchor);
 
     const agg=document.createElement('section');agg.id='nationalAggregatePanel';agg.className='panel';agg.style.display='none';agg.innerHTML=`<div class="nat-head"><div class="nat-title"><h3 id="nationalAggregateTitle">Tổng hợp</h3><p id="nationalAggregateMeta" class="nat-meta">Năm ${year()}</p></div></div><div id="nationalAggregateKpis" class="nat-kpis"></div><div id="nationalAggregateBody"><div class="nat-empty">Chưa có dữ liệu tổng hợp.</div></div>`;
@@ -288,3 +289,4 @@
   global.PCGDNational={VERSION,PROVINCES,getScope,saveScope,currentCommuneSummary,saveSummaryLocal,localAggregate,getAggregate,syncCurrent,flushQueue,renderAggregate};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>init().catch(console.error));else init().catch(console.error);
 })(window);
+
