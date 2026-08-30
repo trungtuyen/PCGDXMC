@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - 'auth-v14.js'
+      - 'auth-v15.js'
       - 'three-level-ui-v16.js'
+      - 'three-level-ui-v17.js'
       - 'admin-users-v15.js'
       - 'nationwide-v13.js'
       - 'gdmn-high-level-v14.js'
@@ -22,7 +24,7 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify GitHub Pages includes three-level UI
+      - name: Verify GitHub Pages includes mobile three-level UI
         shell: bash
         run: |
           set -euo pipefail
@@ -30,19 +32,36 @@ jobs:
           ok='false'
           for i in {1..30}; do
             curl -fsSL "${base}?v=${GITHUB_SHA}" -o /tmp/index.html || true
-            curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" -o /tmp/three-level-ui.js || true
+            curl -fsSL "${base}auth-v14.js?v=${GITHUB_SHA}" -o /tmp/auth-loader.js || true
+            curl -fsSL "${base}auth-v15.js?v=${GITHUB_SHA}" -o /tmp/auth-mobile.js || true
+            curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" -o /tmp/three-level-loader.js || true
+            curl -fsSL "${base}three-level-ui-v17.js?v=${GITHUB_SHA}" -o /tmp/three-level-mobile.js || true
             if grep -q 'auth-v14.js' /tmp/index.html 2>/dev/null \
               && grep -q 'three-level-ui-v16.js' /tmp/index.html 2>/dev/null \
-              && grep -q 'Cấp Bộ' /tmp/three-level-ui.js 2>/dev/null; then
+              && grep -q 'auth-v15.js' /tmp/auth-loader.js 2>/dev/null \
+              && grep -q 'three-level-ui-v17.js' /tmp/three-level-loader.js 2>/dev/null \
+              && grep -q '4G' /tmp/auth-mobile.js 2>/dev/null \
+              && grep -q 'Cấp Bộ' /tmp/three-level-mobile.js 2>/dev/null; then
               ok='true'
               break
             fi
             sleep 2
           done
           test "$ok" = 'true'
-          grep -q 'auth-v14.js' /tmp/index.html
-          grep -q 'three-level-ui-v16.js' /tmp/index.html
-          grep -q 'Cấp Bộ' /tmp/three-level-ui.js
+
+      - name: Verify Android and iPhone can load public HTTPS site
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://trungtuyen.github.io/PCGDXMC/'
+          android='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/151 Mobile Safari/537.36'
+          iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 Version/19.0 Mobile/15E148 Safari/604.1'
+          curl -fsSL -A "$android" "$base?v=android-${GITHUB_SHA}" -o /tmp/android.html
+          curl -fsSL -A "$iphone" "$base?v=iphone-${GITHUB_SHA}" -o /tmp/iphone.html
+          grep -q 'meta name="viewport"' /tmp/android.html
+          grep -q 'meta name="viewport"' /tmp/iphone.html
+          grep -q 'PCGD–XMC Smart' /tmp/android.html
+          grep -q 'PCGD–XMC Smart' /tmp/iphone.html
 
       - name: Verify Cloudflare Worker is operational
         shell: bash
@@ -67,17 +86,21 @@ jobs:
           tr -d '\r' < /tmp/cors.headers > /tmp/cors.normalized
           grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$' /tmp/cors.normalized
 
-      - name: Verify database-backed login route
+      - name: Verify mobile login route over public Internet
         shell: bash
         run: |
           set -euo pipefail
-          code="$(curl -sS -o /tmp/login.json -w '%{http_code}' \
-            -H 'Origin: https://trungtuyen.github.io' \
-            -H 'Content-Type: application/json' \
-            --data '{"username":"__production_probe__","password":"invalid-password-123"}' \
-            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login')"
-          cat /tmp/login.json
-          test "$code" = '400' -o "$code" = '401'
+          android='Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/151 Mobile Safari/537.36'
+          iphone='Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 Version/19.0 Mobile/15E148 Safari/604.1'
+          for ua in "$android" "$iphone"; do
+            code="$(curl -sS -A "$ua" -o /tmp/mobile-login.json -w '%{http_code}' \
+              -H 'Origin: https://trungtuyen.github.io' \
+              -H 'Content-Type: application/json' \
+              --data '{"username":"__mobile_4g_probe__","password":"invalid-password-123"}' \
+              'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login')"
+            cat /tmp/mobile-login.json
+            test "$code" = '400' -o "$code" = '401'
+          done
 
       - name: Verify anonymous admin access is blocked
         shell: bash
@@ -86,6 +109,16 @@ jobs:
           code="$(curl -sS -o /tmp/admin.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
           cat /tmp/admin.json
           test "$code" = '401'
+
+      - name: Verify frontend only uses HTTPS production API
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "https://pcgdxmc-api.pcgdxmc-api.workers.dev" /tmp/auth-mobile.js
+          if grep -q "http://pcgdxmc-api" /tmp/auth-mobile.js; then
+            echo 'Insecure production API URL detected.'
+            exit 1
+          fi
 
       - name: Report three-level gateway deployment state
         shell: bash
