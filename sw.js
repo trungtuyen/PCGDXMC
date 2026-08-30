@@ -2,9 +2,9 @@ const CACHE='pcgdxmc-v1.10.0';
 const CORE=[
   './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
   './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js',
-  './admin-users-v15.js','./three-level-ui-v16.js','./manifest.webmanifest',
-  './core-v02.js','./reports-v02.js','./groups-v03.js','./viewer-v04.js',
-  './xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
+  './admin-users-v15.js','./three-level-ui-v16.js','./aggregate-export-v14.js',
+  './manifest.webmanifest','./core-v02.js','./reports-v02.js','./groups-v03.js',
+  './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
 ];
 const STATIC_ASSET=/\.(?:css|js|json|webmanifest|png|jpg|jpeg|gif|svg|ico|woff2?)$/i;
 
