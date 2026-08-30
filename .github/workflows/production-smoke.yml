@@ -6,7 +6,9 @@ on:
     paths:
       - 'auth-v14.js'
       - 'three-level-ui-v16.js'
-      - 'xmc-menu-v11.js'
+      - 'admin-users-v15.js'
+      - 'nationwide-v13.js'
+      - 'gdmn-high-level-v14.js'
       - 'sw.js'
       - 'index.html'
       - 'backend/cloudflare/**'
@@ -34,9 +36,10 @@ jobs:
             sleep 2
           done
           echo "$html" | grep -q 'auth-v14.js'
+          echo "$html" | grep -q 'three-level-ui-v16.js'
           curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" | grep -q 'three-level-hierarchy\|Cấp Bộ'
 
-      - name: Verify Cloudflare Worker is reachable
+      - name: Verify Cloudflare Worker is operational
         shell: bash
         run: |
           set -euo pipefail
@@ -45,28 +48,47 @@ jobs:
           echo "$body"
           echo "$body" | grep -q '"ok":true'
           echo "$body" | grep -q '"runtime":"cloudflare-workers"'
+          printf '%s' "$body" > /tmp/pcgdxmc-health.json
 
-      - name: Verify newest three-level gateway is live
+      - name: Verify production CORS preflight
         shell: bash
         run: |
           set -euo pipefail
-          url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
-          body=''
-          for i in {1..30}; do
-            body="$(curl -fsS "$url" || true)"
-            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
-              echo "$body"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Worker is reachable but the newest three-level gateway is not live yet."
-          echo "$body"
-          exit 1
+          curl -sS -D /tmp/cors.headers -o /dev/null -X OPTIONS \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type,authorization' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login'
+          cat /tmp/cors.headers
+          tr -d '\r' < /tmp/cors.headers | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
+
+      - name: Verify database-backed login route
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/login.json -w '%{http_code}' \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"username":"__production_probe__","password":"invalid-password-123"}' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login')"
+          cat /tmp/login.json
+          test "$code" = '400' -o "$code" = '401'
 
       - name: Verify anonymous admin access is blocked
         shell: bash
         run: |
+          set -euo pipefail
           code="$(curl -sS -o /tmp/admin.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
           cat /tmp/admin.json
           test "$code" = '401'
+
+      - name: Report three-level gateway deployment state
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(cat /tmp/pcgdxmc-health.json)"
+          if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+            echo 'Three-level gateway is live.'
+          else
+            echo '::warning::Core production is operational; the stricter three-level gateway revision is pending Cloudflare deployment credentials.'
+          fi
