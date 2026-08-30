@@ -14,4 +14,9 @@
   thManual.src='th-manual-input-v20.js?v=20260830-local-v20';
   thManual.async=false;
   document.head.appendChild(thManual);
+
+  const surveyLayout=document.createElement('script');
+  surveyLayout.src='survey-tab-layout-v21.js?v=20260830-survey-v21';
+  surveyLayout.async=false;
+  document.head.appendChild(surveyLayout);
 })();
