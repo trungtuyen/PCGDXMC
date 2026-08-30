@@ -49,6 +49,9 @@ jobs:
       - name: Install Cloudflare Worker dependencies
         working-directory: backend/cloudflare
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Generate Cloudflare Worker types
+        working-directory: backend/cloudflare
+        run: npm run types
       - name: Check Cloudflare Worker TypeScript
         working-directory: backend/cloudflare
         run: npm run check
