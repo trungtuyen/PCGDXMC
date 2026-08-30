@@ -17,7 +17,13 @@
   const fileLabel=document.querySelector('label[for="excelFile"]');if(fileLabel)fileLabel.textContent='Chọn nhiều phiếu điều tra gốc (.xls/.xlsx)';
 
   year.addEventListener('input',()=>{yearTouched=true});
-  file.addEventListener('change',()=>{addFiles([...(file.files||[])]);file.value='';});
+  file.addEventListener('change',()=>{
+    addFiles([...(file.files||[])]);
+    file.value='';
+    if(selectedFiles.length&&window.PCGDExcelRuntime){
+      window.PCGDExcelRuntime.ensureReady().catch(e=>setStatus(`Không tải được bộ xử lý Excel: ${e.message}`,'error'));
+    }
+  });
   analyze.addEventListener('click',run);
   village.addEventListener('change',()=>{if(result)renderScope(true)});
   exportBtn.addEventListener('click',exportAllScope);
@@ -160,8 +166,13 @@
   function setExportState(enabled){exportBtn.disabled=!enabled;exportScopeBtn.disabled=!enabled;document.querySelectorAll('[data-export-scope-group]').forEach(b=>b.disabled=!enabled);}
 
   async function run(){
-    if(!hasInputs())return;analyze.disabled=true;setExportState(false);village.disabled=true;setStatus(`Đang phân tích ${selectedFiles.length} phiếu Excel${directEntries.length?` và ${directEntries.length} đối tượng nhập trực tiếp`:''}…`,'info');
+    if(!hasInputs())return;analyze.disabled=true;setExportState(false);village.disabled=true;
     try{
+      const runtime=window.PCGDExcelRuntime;
+      if(!runtime)throw new Error('Thiếu bộ nạp xử lý Excel. Vui lòng tải lại trang.');
+      if(!runtime.isReady())setStatus('Đang tải bộ xử lý Excel lần đầu…','info');
+      await runtime.ensureReady();
+      setStatus(`Đang phân tích ${selectedFiles.length} phiếu Excel${directEntries.length?` và ${directEntries.length} đối tượng nhập trực tiếp`:''}…`,'info');
       const items=[];
       for(let i=0;i<selectedFiles.length;i++){
         const f=selectedFiles[i];setStatus(`Đang đọc phiếu ${i+1}/${selectedFiles.length}: ${f.name}…`,'info');const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellStyles:false,cellDates:false});
@@ -189,3 +200,4 @@
   updateAnalyzeState();
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 })();
+
