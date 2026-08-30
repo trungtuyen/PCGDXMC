@@ -27,28 +27,32 @@ jobs:
         run: |
           set -euo pipefail
           base='https://trungtuyen.github.io/PCGDXMC/'
-          html=''
+          ok='false'
           for i in {1..30}; do
-            html="$(curl -fsSL "${base}?v=${GITHUB_SHA}" || true)"
-            if echo "$html" | grep -q 'auth-v14.js'; then
+            curl -fsSL "${base}?v=${GITHUB_SHA}" -o /tmp/index.html || true
+            curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" -o /tmp/three-level-ui.js || true
+            if grep -q 'auth-v14.js' /tmp/index.html 2>/dev/null \
+              && grep -q 'three-level-ui-v16.js' /tmp/index.html 2>/dev/null \
+              && grep -q 'Cấp Bộ' /tmp/three-level-ui.js 2>/dev/null; then
+              ok='true'
               break
             fi
             sleep 2
           done
-          echo "$html" | grep -q 'auth-v14.js'
-          echo "$html" | grep -q 'three-level-ui-v16.js'
-          curl -fsSL "${base}three-level-ui-v16.js?v=${GITHUB_SHA}" | grep -q 'three-level-hierarchy\|Cấp Bộ'
+          test "$ok" = 'true'
+          grep -q 'auth-v14.js' /tmp/index.html
+          grep -q 'three-level-ui-v16.js' /tmp/index.html
+          grep -q 'Cấp Bộ' /tmp/three-level-ui.js
 
       - name: Verify Cloudflare Worker is operational
         shell: bash
         run: |
           set -euo pipefail
           url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
-          body="$(curl -fsS "$url")"
-          echo "$body"
-          echo "$body" | grep -q '"ok":true'
-          echo "$body" | grep -q '"runtime":"cloudflare-workers"'
-          printf '%s' "$body" > /tmp/pcgdxmc-health.json
+          curl -fsS "$url" -o /tmp/pcgdxmc-health.json
+          cat /tmp/pcgdxmc-health.json
+          grep -q '"ok":true' /tmp/pcgdxmc-health.json
+          grep -q '"runtime":"cloudflare-workers"' /tmp/pcgdxmc-health.json
 
       - name: Verify production CORS preflight
         shell: bash
@@ -60,7 +64,8 @@ jobs:
             -H 'Access-Control-Request-Headers: content-type,authorization' \
             'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login'
           cat /tmp/cors.headers
-          tr -d '\r' < /tmp/cors.headers | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
+          tr -d '\r' < /tmp/cors.headers > /tmp/cors.normalized
+          grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$' /tmp/cors.normalized
 
       - name: Verify database-backed login route
         shell: bash
@@ -86,8 +91,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          body="$(cat /tmp/pcgdxmc-health.json)"
-          if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+          if grep -q '"authModel":"three-level-hierarchy-v1"' /tmp/pcgdxmc-health.json; then
             echo 'Three-level gateway is live.'
           else
             echo '::warning::Core production is operational; the stricter three-level gateway revision is pending Cloudflare deployment credentials.'
