@@ -1,8 +1,8 @@
-const CACHE='pcgdxmc-v1.10.0';
+const CACHE='pcgdxmc-v1.11.0-mobile';
 const CORE=[
   './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
-  './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js',
-  './admin-users-v15.js','./three-level-ui-v16.js','./aggregate-export-v14.js',
+  './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js','./auth-v15.js',
+  './admin-users-v15.js','./three-level-ui-v16.js','./three-level-ui-v17.js','./aggregate-export-v14.js',
   './manifest.webmanifest','./core-v02.js','./reports-v02.js','./groups-v03.js',
   './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
 ];
@@ -36,24 +36,20 @@ async function navigationResponse(event){
   try{
     const preload=await event.preloadResponse;
     if(preload)return cacheResponse(event.request,preload);
-    const response=await fetch(event.request);
+    const response=await fetch(event.request,{cache:'no-store'});
     return cacheResponse(event.request,response);
   }catch(_){
     return (await caches.match(event.request))||(await caches.match('./index.html'))||Response.error();
   }
 }
 
-async function staleWhileRevalidate(event){
-  const cached=await caches.match(event.request);
-  const refresh=fetch(event.request)
-    .then(response=>cacheResponse(event.request,response))
-    .catch(()=>null);
-  if(cached){
-    event.waitUntil(refresh);
-    return cached;
+async function networkFirstStatic(event){
+  try{
+    const response=await fetch(event.request,{cache:'no-store'});
+    return cacheResponse(event.request,response);
+  }catch(_){
+    return (await caches.match(event.request))||Response.error();
   }
-  const fresh=await refresh;
-  return fresh||Response.error();
 }
 
 self.addEventListener('fetch',event=>{
@@ -67,7 +63,7 @@ self.addEventListener('fetch',event=>{
   }
 
   if(STATIC_ASSET.test(url.pathname)){
-    event.respondWith(staleWhileRevalidate(event));
+    event.respondWith(networkFirstStatic(event));
     return;
   }
 
