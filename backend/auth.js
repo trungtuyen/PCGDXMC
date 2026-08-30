@@ -5,8 +5,7 @@ const clean=v=>String(v||'').trim();
 const uuid=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(v||''));
 function actor(req){return {id:String(req.user?.sub||''),role:req.user?.role||'',provinceKey:req.user?.provinceKey||'',communeCode:req.user?.communeCode||''}}
 function canManage(a,target){
-  if(a.role==='super_admin')return true;
-  if(a.role==='national_admin')return target.role==='province_admin'||target.role==='commune_admin';
+  if(a.role==='super_admin'||a.role==='national_admin')return target.role==='province_admin';
   if(a.role==='province_admin')return target.role==='commune_admin'&&target.province_key===a.provinceKey;
   return false;
 }
@@ -38,9 +37,9 @@ export async function registerAuthRoutes(app,pool){
   app.get('/v1/admin/users',async(req,reply)=>{
     const a=actor(req);if(!['super_admin','national_admin','province_admin'].includes(a.role))return reply.code(403).send({error:'forbidden'});
     let sql=`SELECT user_id AS id,username,display_name AS "displayName",role,province_key AS "provinceKey",commune_code AS "communeCode",active,last_login_at AS "lastLoginAt",created_at AS "createdAt" FROM app_users`,params=[];
-    if(a.role==='national_admin')sql+=` WHERE role IN ('province_admin','commune_admin')`;
+    if(a.role==='super_admin'||a.role==='national_admin')sql+=` WHERE role='province_admin'`;
     if(a.role==='province_admin'){params=[a.provinceKey];sql+=` WHERE role='commune_admin' AND province_key=$1`}
-    sql+=` ORDER BY role,province_key NULLS FIRST,commune_code NULLS FIRST,username LIMIT 5000`;
+    sql+=` ORDER BY province_key NULLS FIRST,commune_code NULLS FIRST,username LIMIT 5000`;
     return {users:(await pool.query(sql,params)).rows};
   });
 
