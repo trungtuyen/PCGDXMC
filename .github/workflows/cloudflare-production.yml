@@ -23,7 +23,7 @@ jobs:
         working-directory: backend/cloudflare
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -50,12 +50,15 @@ jobs:
         working-directory: .
         shell: bash
         run: |
-          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+          missing=''
+          [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -z "$missing" ]; then
             echo 'can_deploy=true' >> "$GITHUB_OUTPUT"
-            echo 'Cloudflare API token is configured securely as a GitHub Secret.'
+            echo 'Cloudflare deployment credentials are configured securely as GitHub Secrets.'
           else
             echo 'can_deploy=false' >> "$GITHUB_OUTPUT"
-            echo '::warning::GitHub Secret CLOUDFLARE_API_TOKEN is not configured. Build validation will continue and the existing production Worker will remain active.'
+            echo "::warning::Missing GitHub Secret(s):$missing. Build validation will continue and the existing production Worker will remain active."
           fi
 
       - name: Deploy production Worker
@@ -115,7 +118,7 @@ jobs:
           cat /tmp/login.json
           test "$code" = '400' -o "$code" = '401'
 
-      - name: Verify deployed three-level gateway when deployment ran
+      - name: Verify deployed three-level mobile gateway when deployment ran
         if: steps.credentials.outputs.can_deploy == 'true'
         working-directory: .
         shell: bash
@@ -124,13 +127,15 @@ jobs:
           body=''
           for i in {1..30}; do
             body="$(curl -fsS 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health' || true)"
-            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"' \
+              && echo "$body" | grep -q '"gatewayVersion":"1.4.0"' \
+              && echo "$body" | grep -q '"mobileNetwork":"public-https"'; then
               echo "$body"
               exit 0
             fi
             sleep 2
           done
-          echo "Production Worker did not report the newest three-level gateway. Last response: $body"
+          echo "Production Worker did not report gateway 1.4.0 mobile hierarchy. Last response: $body"
           exit 1
 
       - name: Report pending gateway deployment
@@ -141,5 +146,5 @@ jobs:
           if grep -q '"authModel":"three-level-hierarchy-v1"' /tmp/health.json; then
             echo 'Three-level gateway is already live.'
           else
-            echo '::warning::Production API is healthy, but publishing the newest three-level gateway still requires GitHub Secret CLOUDFLARE_API_TOKEN.'
+            echo '::warning::Production API is healthy, but publishing gateway 1.4.0 requires GitHub Secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.'
           fi
