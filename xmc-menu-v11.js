@@ -10,6 +10,7 @@
   tab.addEventListener('click',ev=>{ev.preventDefault();ev.stopImmediatePropagation();toggle()},true);dropdown.querySelectorAll('[data-xmc-target]').forEach(item=>item.addEventListener('click',()=>{const target=sourceMenu.querySelector(item.dataset.xmcTarget);close();activateXmcPage();if(target){target.click();document.getElementById('xmc')?.scrollIntoView({behavior:'smooth',block:'start'})}}));document.addEventListener('click',ev=>{if(dropdown.style.display==='block'&&!dropdown.contains(ev.target)&&ev.target!==tab)close()});window.addEventListener('resize',()=>{if(dropdown.style.display==='block')position()});window.addEventListener('scroll',()=>{if(dropdown.style.display==='block')position()},{passive:true});window.addEventListener('keydown',ev=>{if(ev.key==='Escape')close()});
 })();
 function loadPcgdxmcModule(src,dataKey){const absolute=new URL(src,document.baseURI).href;const alreadyPresent=Array.from(document.scripts).some(script=>script.src===absolute);if(alreadyPresent||document.querySelector(`script[${dataKey}]`))return;const s=document.createElement('script');s.src=src;s.setAttribute(dataKey,'1');document.head.appendChild(s)}
+(function(){loadPcgdxmcModule('./xmc-standard-15-25-v23.js','data-pcgd-xmc-standard-1525')})();
 (function(){if(!window.PCGDExcelExport?.installed)loadPcgdxmcModule('./excel-export-v12.js','data-pcgd-excel-export')})();
 (function(){loadPcgdxmcModule('./education-menus-v13.js','data-pcgd-education-menus')})();
 (function(){loadPcgdxmcModule('./aggregate-export-v14.js','data-pcgd-aggregate-export')})();

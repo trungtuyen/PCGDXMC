@@ -1,10 +1,10 @@
-const CACHE='pcgdxmc-v1.16.0-round-v22';
+const CACHE='pcgdxmc-v1.17.0-xmc1525-v23';
 const CORE=[
   './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
   './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js','./auth-v15.js',
   './admin-users-v15.js','./three-level-ui-v16.js','./three-level-ui-v17.js','./local-mode-v18.js','./th-manual-input-v20.js','./survey-tab-layout-v21.js','./aggregate-export-v14.js',
   './manifest.webmanifest','./core-v02.js','./rounding-v22.js','./reports-v02.js','./groups-v03.js',
-  './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js'
+  './viewer-v04.js','./xmc-lists-v09.js','./xmc-age-summary-v10.js','./xmc-menu-v11.js','./xmc-standard-15-25-v23.js'
 ];
 const STATIC_ASSET=/\.(?:css|js|json|webmanifest|png|jpg|jpeg|gif|svg|ico|woff2?)$/i;
 
