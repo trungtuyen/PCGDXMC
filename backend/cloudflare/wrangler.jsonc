@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "pcgdxmc-api",
-  "main": "src/index.ts",
+  "main": "src/entry.ts",
   "compatibility_date": "2026-08-30",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -28,4 +28,3 @@
     }
   }
 }
-
