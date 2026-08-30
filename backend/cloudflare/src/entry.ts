@@ -10,7 +10,7 @@ function canManage(actor:AppUser,target:{role:string;provinceKey?:string}){
   return actor.role==='province_admin'&&target.role==='commune_admin'&&target.provinceKey===actor.provinceKey;
 }
 
-async function callBase(request:Request,env:Env,ctx:ExecutionContext){return base.fetch(request,env,ctx)}
+async function callBase(request:Request,env:Env,ctx:ExecutionContext){return base.fetch(request as any,env,ctx)}
 async function verifiedMe(request:Request,env:Env,ctx:ExecutionContext){
   const url=new URL(request.url);url.pathname='/v1/me';url.search='';
   const r=await callBase(new Request(url.toString(),{method:'GET',headers:request.headers}),env,ctx);
