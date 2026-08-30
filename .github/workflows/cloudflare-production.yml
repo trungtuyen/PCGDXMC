@@ -16,14 +16,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  validate-and-deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend/cloudflare
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || vars.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -32,12 +32,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '22'
-
-      - name: Verify Cloudflare credentials are configured
-        shell: bash
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing GitHub secret CLOUDFLARE_API_TOKEN'; exit 1; }
-          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing GitHub secret CLOUDFLARE_ACCOUNT_ID'; exit 1; }
 
       - name: Install dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
@@ -51,31 +45,46 @@ jobs:
       - name: Dry-run build
         run: npm run build
 
+      - name: Detect Cloudflare deploy credentials
+        id: credentials
+        working-directory: .
+        shell: bash
+        run: |
+          if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo 'can_deploy=true' >> "$GITHUB_OUTPUT"
+            echo 'Cloudflare API token is configured.'
+          else
+            echo 'can_deploy=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Cloudflare API token is not configured in GitHub Secrets/Variables. Build validation will continue and the existing production Worker will remain active.'
+          fi
+
       - name: Deploy production Worker
+        if: steps.credentials.outputs.can_deploy == 'true'
         run: npx wrangler deploy
 
-      - name: Verify deployed three-level gateway
+      - name: Verify production Worker is operational
         working-directory: .
         shell: bash
         run: |
           set -euo pipefail
           url='https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health'
           body=''
-          for i in {1..30}; do
+          for i in {1..15}; do
             body="$(curl -fsS "$url" || true)"
-            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+            if echo "$body" | grep -q '"ok":true' && echo "$body" | grep -q '"runtime":"cloudflare-workers"'; then
               echo "$body"
-              exit 0
+              printf '%s' "$body" > /tmp/health.json
+              break
             fi
             sleep 2
           done
-          echo "Production Worker did not report the three-level gateway. Last response: $body"
-          exit 1
+          test -s /tmp/health.json
 
       - name: Verify protected endpoint rejects anonymous access
         working-directory: .
         shell: bash
         run: |
+          set -euo pipefail
           code="$(curl -sS -o /tmp/protected.json -w '%{http_code}' 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/admin/users')"
           cat /tmp/protected.json
           test "$code" = '401'
@@ -84,10 +93,52 @@ jobs:
         working-directory: .
         shell: bash
         run: |
-          curl -fsSI -X OPTIONS \
+          set -euo pipefail
+          curl -sS -D /tmp/cors.headers -o /dev/null -X OPTIONS \
             -H 'Origin: https://trungtuyen.github.io' \
             -H 'Access-Control-Request-Method: POST' \
             -H 'Access-Control-Request-Headers: content-type,authorization' \
-            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login' \
-            | tr -d '\r' \
-            | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login'
+          tr -d '\r' < /tmp/cors.headers | grep -qi '^access-control-allow-origin: https://trungtuyen.github.io$'
+
+      - name: Verify database-backed login route
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          code="$(curl -sS -o /tmp/login.json -w '%{http_code}' \
+            -H 'Origin: https://trungtuyen.github.io' \
+            -H 'Content-Type: application/json' \
+            --data '{"username":"__production_probe__","password":"invalid-password-123"}' \
+            'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/auth/login')"
+          cat /tmp/login.json
+          test "$code" = '400' -o "$code" = '401'
+
+      - name: Verify deployed three-level gateway when deployment ran
+        if: steps.credentials.outputs.can_deploy == 'true'
+        working-directory: .
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=''
+          for i in {1..30}; do
+            body="$(curl -fsS 'https://pcgdxmc-api.pcgdxmc-api.workers.dev/v1/health' || true)"
+            if echo "$body" | grep -q '"authModel":"three-level-hierarchy-v1"'; then
+              echo "$body"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Production Worker did not report the newest three-level gateway. Last response: $body"
+          exit 1
+
+      - name: Report pending gateway deployment
+        if: steps.credentials.outputs.can_deploy != 'true'
+        working-directory: .
+        shell: bash
+        run: |
+          if grep -q '"authModel":"three-level-hierarchy-v1"' /tmp/health.json; then
+            echo 'Three-level gateway is already live.'
+          else
+            echo '::warning::Production API is healthy, but publishing the newest three-level gateway still requires a Cloudflare API token configured for this repository.'
+          fi
