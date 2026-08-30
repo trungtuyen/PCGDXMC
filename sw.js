@@ -1,4 +1,4 @@
-const CACHE='pcgdxmc-v1.12.0-local';
+const CACHE='pcgdxmc-v1.13.0-local-v19';
 const CORE=[
   './','./index.html','./styles.css','./excel-runtime-v15.js','./app.js',
   './nationwide-v13.js','./gdmn-high-level-v14.js','./auth-v14.js','./auth-v15.js',
