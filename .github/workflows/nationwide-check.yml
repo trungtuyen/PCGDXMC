@@ -17,6 +17,7 @@ on:
       - 'excel-runtime-v15.js'
       - 'xmc-menu-v11.js'
       - 'xmc-standard-15-25-v23.js'
+      - 'xmc-standard-ranges-v24.js'
       - 'sw.js'
       - 'index.html'
       - 'backend/**'
@@ -51,6 +52,7 @@ jobs:
           node --check excel-runtime-v15.js
           node --check xmc-menu-v11.js
           node --check xmc-standard-15-25-v23.js
+          node --check xmc-standard-ranges-v24.js
           node --check sw.js
       - name: Install backend dependencies
         working-directory: backend
@@ -82,8 +84,15 @@ jobs:
           grep -q 'aggregate-export-v14.js' xmc-menu-v11.js
           grep -q 'three-level-ui-v16.js' xmc-menu-v11.js
           grep -q 'xmc-standard-15-25-v23.js' xmc-menu-v11.js
+          grep -q 'xmc-standard-ranges-v24.js' xmc-menu-v11.js
           grep -q 'Thống kê đạt chuẩn XMC (15–25)' xmc-standard-15-25-v23.js
           grep -q 'Độ tuổi 15-25' xmc-standard-15-25-v23.js
+          grep -q "'15-35':" xmc-standard-ranges-v24.js
+          grep -q "'35-60':" xmc-standard-ranges-v24.js
+          grep -q 'Thống kê đạt chuẩn XMC' xmc-standard-ranges-v24.js
+          grep -q 'Xuất Excel biểu này' xmc-standard-ranges-v24.js
+          ! grep -q 'Thời điểm:' xmc-standard-ranges-v24.js
+          ! grep -q 'Ngày&nbsp;' xmc-standard-ranges-v24.js
           grep -q 'local-mode-v18.js' three-level-ui-v16.js
           grep -q 'th-manual-input-v20.js' three-level-ui-v16.js
           grep -q 'survey-tab-layout-v21.js' three-level-ui-v16.js
@@ -112,6 +121,7 @@ jobs:
           grep -q 'xmc-age-summary-v10.js' sw.js
           grep -q 'xmc-menu-v11.js' sw.js
           grep -q 'xmc-standard-15-25-v23.js' sw.js
+          grep -q 'xmc-standard-ranges-v24.js' sw.js
           grep -q '"main": "src/entry.ts"' backend/cloudflare/wrangler.jsonc
       - name: Verify 34 province entries
         run: |

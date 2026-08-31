@@ -11,6 +11,7 @@
 })();
 function loadPcgdxmcModule(src,dataKey){const absolute=new URL(src,document.baseURI).href;const alreadyPresent=Array.from(document.scripts).some(script=>script.src===absolute);if(alreadyPresent||document.querySelector(`script[${dataKey}]`))return;const s=document.createElement('script');s.src=src;s.setAttribute(dataKey,'1');document.head.appendChild(s)}
 (function(){loadPcgdxmcModule('./xmc-standard-15-25-v23.js','data-pcgd-xmc-standard-1525')})();
+(function(){loadPcgdxmcModule('./xmc-standard-ranges-v24.js','data-pcgd-xmc-standard-ranges')})();
 (function(){if(!window.PCGDExcelExport?.installed)loadPcgdxmcModule('./excel-export-v12.js','data-pcgd-excel-export')})();
 (function(){loadPcgdxmcModule('./education-menus-v13.js','data-pcgd-education-menus')})();
 (function(){loadPcgdxmcModule('./aggregate-export-v14.js','data-pcgd-aggregate-export')})();
